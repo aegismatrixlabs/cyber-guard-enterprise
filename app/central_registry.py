@@ -6,6 +6,7 @@ from feature_scanner_core import FeatureScannerCore
 from feature_reporting import FeatureReportingModule
 from feature_billing import FeatureBillingModule
 from api_gateway_waf import ApiGatewayWafModule
+from feature_audit_log import FeatureAuditLogModule
 
 class CentralRegistry:
     def __init__(self):
@@ -18,7 +19,6 @@ class CentralRegistry:
 if __name__ == "__main__":
     registry = CentralRegistry()
     
-    # Mevcut modüller ve yeni eklenen WAF modülü (Append-Only)
     registry.register_module("feature_auth", FeatureAuthModule())
     registry.register_module("saas_backup", create_system_snapshot)
     registry.register_module("saas_restore", restore_system_snapshot)
@@ -27,5 +27,6 @@ if __name__ == "__main__":
     registry.register_module("feature_reporting", FeatureReportingModule())
     registry.register_module("feature_billing", FeatureBillingModule())
     registry.register_module("api_gateway_waf", ApiGatewayWafModule())
+    registry.register_module("feature_audit_log", FeatureAuditLogModule())
     
     print("Merkez Kayıt (Central Registry) Delta Senkronizasyonu Başarılı.")

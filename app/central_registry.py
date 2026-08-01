@@ -8,6 +8,7 @@ from feature_billing import FeatureBillingModule
 from api_gateway_waf import ApiGatewayWafModule
 from feature_audit_log import FeatureAuditLogModule
 from feature_cicd_pipeline import FeatureCicdPipelineModule
+from feature_apm_monitor import FeatureApmMonitorModule
 
 class CentralRegistry:
     def __init__(self):
@@ -20,7 +21,7 @@ class CentralRegistry:
 if __name__ == "__main__":
     registry = CentralRegistry()
     
-    # Mevcut modüller ve yeni eklenen CI/CD Pipeline modülü (Append-Only Delta)
+    # Mevcut modüller ve yeni eklenen APM Monitor modülü (Append-Only Delta)
     registry.register_module("feature_auth", FeatureAuthModule())
     registry.register_module("saas_backup", create_system_snapshot)
     registry.register_module("saas_restore", restore_system_snapshot)
@@ -31,5 +32,6 @@ if __name__ == "__main__":
     registry.register_module("api_gateway_waf", ApiGatewayWafModule())
     registry.register_module("feature_audit_log", FeatureAuditLogModule())
     registry.register_module("feature_cicd_pipeline", FeatureCicdPipelineModule())
+    registry.register_module("feature_apm_monitor", FeatureApmMonitorModule())
     
     print("Merkez Kayıt (Central Registry) Delta Senkronizasyonu Başarılı.")

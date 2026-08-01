@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberGuard Enterprise | Zafiyet Tarama ve Keşif Motoru</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            dark: '#0B132B',
+                            card: '#1C2541',
+                            accent: '#48CAE4',
+                            glow: '#00F5D4',
+                            danger: '#FF3366',
+                            warning: '#FFB703',
+                            success: '#2A9D8F'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-cyber-dark text-slate-100 font-sans antialiased selection:bg-cyber-accent selection:text-cyber-dark">
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="w-64 bg-cyber-card border-r border-slate-800 flex flex-col justify-between hidden lg:flex">
+            <div>
+                <!-- Brand Header -->
+                <div class="h-20 flex items-center px-6 border-b border-slate-800 space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-cyber-accent to-cyber-glow flex items-center justify-center shadow-lg shadow-cyber-accent/20">
+                        <i class="fa-solid fa-shield-halved text-cyber-dark text-xl"></i>
+                    </div>
+                    <span class="text-lg font-bold tracking-wider text-white">CYBER<span class="text-cyber-accent">GUARD</span></span>
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="p-4 space-y-1 text-sm font-medium">
+                    <a href="dashboard.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-chart-pie w-5"></i>
+                        <span>SOC Paneli</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-xl bg-cyber-dark text-cyber-accent border border-slate-800 shadow-inner">
+                        <i class="fa-solid fa-radar w-5"></i>
+                        <span>Zafiyet Taramaları</span>
+                    </a>
+                    <a href="assets.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-server w-5"></i>
+                        <span>Varlık Envanteri</span>
+                    </a>
+                    <a href="reports.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-file-shield w-5"></i>
+                        <span>Uyumluluk & Raporlar</span>
+                    </a>
+                    <a href="settings.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-gears w-5"></i>
+                        <span>Sistem Ayarları</span>
+                    </a>
+                    <a href="integrations.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-plug w-5"></i>
+                        <span>Entegrasyonlar</span>
+                    </a>
+                </nav>
+            </div>
+
+            <!-- User Session Box -->
+            <div class="p-4 border-t border-slate-800">
+                <div class="flex items-center justify-between bg-cyber-dark p-3 rounded-xl border border-slate-800">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-lg bg-slate-800 flex items-center justify-center text-cyber-accent font-bold">
+                            SA
+                        </div>
+                        <div class="overflow-hidden">
+                            <p class="text-xs font-bold text-white truncate">SOC Analisti</p>
+                            <p class="text-[10px] text-slate-400 truncate">analyst@enterprise.com</p>
+                        </div>
+                    </div>
+                    <a href="login.html" title="Çıkış Yap" class="text-slate-400 hover:text-cyber-danger transition p-2">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col h-screen overflow-y-auto">
+            
+            <!-- Top Navbar -->
+            <header class="h-20 bg-cyber-card/50 backdrop-blur-md border-b border-slate-800 px-8 flex items-center justify-between sticky top-0 z-40">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-xl font-bold text-white">Zafiyet Taramaları ve Keşif Motoru</h1>
+                    <span class="px-3 py-1 rounded-full bg-cyber-accent/10 border border-cyber-accent/30 text-cyber-accent text-xs font-semibold flex items-center">
+                        <i class="fa-solid fa-microchip mr-2"></i> AEGIS_MATRIX Tarama Çekirdeği Aktif
+                    </span>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <button onclick="openNewScanModal()" class="px-4 py-2 bg-gradient-to-r from-cyber-accent to-cyber-glow text-cyber-dark font-bold text-xs rounded-lg shadow-md hover:opacity-90 transition flex items-center space-x-2">
+                        <i class="fa-solid fa-play"></i>
+                        <span>Yeni Tarama Başlat</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Body Content -->
+            <div class="p-8 space-y-8 max-w-7xl w-full mx-auto">
+                
+                <!-- Quick Metrics Grid for Scans -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="bg-cyber-card border border-slate-800 p-6 rounded-2xl relative overflow-hidden">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-cyber-accent"></div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Aktif Taramalar</p>
+                        <h3 class="text-3xl font-extrabold text-white mt-2">4</h3>
+                        <p class="text-xs text-cyber-accent mt-4"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Gerçek Zamanlı Çalışıyor</p>
+                    </div>
+                    <div class="bg-cyber-card border border-slate-800 p-6 rounded-2xl relative overflow-hidden">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-cyber-danger"></div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tespit Edilen Kritik</p>
+                        <h3 class="text-3xl font-extrabold text-white mt-2">12</h3>
+                        <p class="text-xs text-cyber-danger mt-4"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Acil Müdahale Gerekli</p>
+                    </div>
+                    <div class="bg-cyber-card border border-slate-800 p-6 rounded-2xl relative overflow-hidden">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-cyber-success"></div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tamamlanan Tarama</p>
+                        <h3 class="text-3xl font-extrabold text-white mt-2">348</h3>
+                        <p class="text-xs text-cyber-success mt-4"><i class="fa-solid fa-check-circle mr-1"></i> Bu Ay</p>
+                    </div>
+                    <div class="bg-cyber-card border border-slate-800 p-6 rounded-2xl relative overflow-hidden">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-cyber-warning"></div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Kuyruktaki Görevler</p>
+                        <h3 class="text-3xl font-extrabold text-white mt-2">7</h3>
+                        <p class="text-xs text-cyber-warning mt-4"><i class="fa-solid fa-clock mr-1"></i> Sırada Bekliyor</p>
+                    </div>
+                </div>
+
+                <!-- Scan Jobs Table -->
+                <div class="bg-cyber-card border border-slate-800 rounded-2xl overflow-hidden">
+                    <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-base font-bold text-white">Zafiyet Tarama Görevleri ve Durumları</h3>
+                            <p class="text-xs text-slate-400 mt-1">Ağ segmentleri ve hostlar üzerinde çalışan aktif/geçmiş AEGIS_MATRIX taramaları</p>
+                        </div>
+                        <span class="text-xs text-slate-400 font-mono">Motor Sürümü: v4.2.0-enterprise</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-cyber-dark/50 text-xs font-semibold uppercase text-slate-400 border-b border-slate-800">
+                                    <th class="py-4 px-6">Tarama Adı / Profil</th>
+                                    <th class="py-4 px-6">Hedef / CIDR</th>
+                                    <th class="py-4 px-6">Tür</th>
+                                    <th class="py-4 px-6">Durum</th>
+                                    <th class="py-4 px-6">İlerleme</th>
+                                    <th class="py-4 px-6 text-right">Aksiyonlar</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800 text-slate-300">
+                                <tr class="hover:bg-slate-800/30 transition">
+                                    <td class="py-4 px-6 font-bold text-white flex items-center">
+                                        <i class="fa-solid fa-radar text-cyber-accent mr-3 animate-pulse"></i> Production Cloud Perimeter Audit
+                                    </td>
+                                    <td class="py-4 px-6 font-mono text-xs text-slate-300">10.0.1.0/24</td>
+                                    <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-full bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/30 text-xs font-bold">Deep Scan</span></td>
+                                    <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-full bg-cyber-warning/10 text-cyber-warning border border-cyber-warning/30 text-xs font-bold">Çalışıyor</span></td>
+                                    <td class="py-4 px-6">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-24 bg-cyber-dark rounded-full h-2 overflow-hidden border border-slate-700">
+                                                <div class="bg-gradient-to-r from-cyber-accent to-cyber-glow h-2 rounded-full" style="width: 68%"></div>
+                                            </div>
+                                            <span class="text-xs font-mono text-slate-400">%68</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-4 px-6 text-right space-x-2">
+                                        <button onclick="pauseScan('Production Cloud Perimeter Audit')" class="p-2 bg-cyber-dark hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700 transition" title="Duraklat"><i class="fa-solid fa-pause text-cyber-warning"></i></button>
+                                        <button onclick="stopScan('Production Cloud Perimeter Audit')" class="p-2 bg-cyber-dark hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700 transition" title="İptal Et"><i class="fa-solid fa-stop text-cyber-danger"></i></button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-slate-800/30 transition">
+                                    <td class="py-4 px-6 font-bold text-white flex items-center">
+                                        <i class="fa-solid fa-globe text-cyber-glow mr-3 animate-pulse"></i> External Web App Vulnerability Scan
+                                    </td>
+                                    <td class="py-4 px-6 font-mono text-xs text-slate-300">scanme.nmap.org</td>
+                                    <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-full bg-cyber-danger/10 text-cyber-danger border border-cyber-danger/30 text-xs font-bold">OWASP Top 10</span></td>
+                                    <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-full bg-cyber-warning/10 text-cyber-warning border border-cyber-warning/30 text-xs font-bold">Çalışıyor</span></td>
+                                    <td class="py-4 px-6">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-24 bg-cyber-dark rounded-full h-2 overflow-hidden border border-slate-700">
+                                                <div class="bg-gradient-to-r from-cyber-accent to-cyber-glow h-2 rounded-full" style="width: 42%"></div>
+                                            </div>
+                                            <span class="text-xs font-mono text-slate-400">%42</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-4 px-6 text-right space-x-2">
+                                        <button onclick="pauseScan('External Web App Vulnerability Scan')" class="p-2 bg-cyber-dark hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700 transition" title="Duraklat"><i class="fa-solid fa-pause text-cyber-warning"></i></button>
+                                        <button onclick="stopScan('External Web App Vulnerability Scan')" class="p-2 bg-cyber-dark hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700 transition" title="İptal Et"><i class="fa-solid fa-stop text-cyber-danger"></i></button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-slate-800/30 transition">
+                                    <td class="py-4 px-6 font-bold text-white flex items-center">
+                                        <i class="fa-solid fa-database text-cyber-success mr-3"></i> Internal DB Cluster Compliance Check
+                                    </td>
+                                    <td class="py-4 px-6 font-mono text-xs text-slate-300">10.0.5.0/24</td>
+                                    <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-full bg-cyber-success/10 text-cyber-success border border-cyber-success/30 text-xs font-bold">PCI-DSS Audit</span></td>
+                                    <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-full bg-cyber-success/10 text-cyber-success border border-cyber-success/30 text-xs font-bold">Tamamlandı</span></td>
+                                    <td class="py-4 px-6">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-24 bg-cyber-dark rounded-full h-2 overflow-hidden border border-slate-700">
+                                                <div class="bg-cyber-success h-2 rounded-full" style="width: 100%"></div>
+                                            </div>
+                                            <span class="text-xs font-mono text-slate-400">%100</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-4 px-6 text-right space-x-2">
+                                        <button onclick="viewScanReport('Internal DB Cluster Compliance Check')" class="p-2 bg-cyber-dark hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700 transition" title="Raporu Gör"><i class="fa-solid fa-file-lines text-cyber-accent"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for New Scan -->
+    <div id="scanModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-cyber-card border border-slate-800 rounded-2xl max-w-lg w-full p-8 shadow-2xl relative">
+            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyber-accent to-cyber-glow rounded-t-2xl"></div>
+            
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-white flex items-center"><i class="fa-solid fa-radar mr-2 text-cyber-accent"></i> Yeni Zafiyet Taraması Başlat</h3>
+                <button onclick="closeNewScanModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="newScanForm" onsubmit="submitNewScan(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Tarama Görev Adı</label>
+                    <input type="text" id="scanName" required placeholder="Örn: DMZ Network Security Audit"
+                        class="w-full px-4 py-3 bg-cyber-dark border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyber-accent transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Hedef IP / CIDR / Domain</label>
+                    <input type="text" id="scanTarget" required placeholder="192.168.1.0/24 veya scanme.nmap.org"
+                        class="w-full px-4 py-3 bg-cyber-dark border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 font-mono focus:outline-none focus:border-cyber-accent transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Tarama Profili</label>
+                    <select id="scanProfile" class="w-full px-4 py-3 bg-cyber-dark border border-slate-700 rounded-xl text-sm text-slate-300 focus:outline-none focus:border-cyber-accent transition">
+                        <option>AEGIS_MATRIX Deep Vulnerability Scan</option>
+                        <option>OWASP Top 10 Web Application Scan</option>
+                        <option>PCI-DSS v4.0 Compliance Audit</option>
+                        <option>Quick Port & Service Discovery</option>
+                    </select>
+                </div>
+                <div class="pt-4 flex space-x-4">
+                    <button type="button" onclick="closeNewScanModal()" class="w-1/2 py-3 bg-cyber-dark border border-slate-700 text-slate-300 font-bold rounded-xl text-xs hover:bg-slate-800 transition">İptal</button>
+                    <button type="submit" id="startScanBtn" class="w-1/2 py-3 bg-gradient-to-r from-cyber-accent to-cyber-glow text-cyber-dark font-bold rounded-xl text-xs shadow-lg hover:opacity-90 transition">Taramayı Başlat</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Security Script & Idempotency / Safe Handler Logic -->
+    <script>
+        function openNewScanModal() {
+            document.getElementById('scanModal').classList.remove('hidden');
+            document.getElementById('scanModal').classList.add('flex');
+        }
+
+        function closeNewScanModal() {
+            document.getElementById('scanModal').classList.remove('flex');
+            document.getElementById('scanModal').classList.add('hidden');
+        }
+
+        let isStartingScan = false; // Idempotency protection flag
+
+        function submitNewScan(event) {
+            event.preventDefault();
+            if (isStartingScan) return;
+            isStartingScan = true;
+
+            const btn = document.getElementById('startScanBtn');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i>Başlatılıyor...`;
+            btn.disabled = true;
+
+            try {
+                setTimeout(() => {
+                    alert('Yeni zafiyet tarama görevi AEGIS_MATRIX kuyruğuna başarıyla eklendi.');
+                    closeNewScanModal();
+                }, 1200);
+            } catch (error) {
+                console.error("Tarama başlatma hatası yakalandı.");
+            } finally {
+                setTimeout(() => {
+                    isStartingScan = false;
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                }, 1500);
+            }
+        }
+
+        function pauseScan(scanName) {
+            alert(scanName + " tarama görevi duraklatıldı.");
+        }
+
+        function stopScan(scanName) {
+            if (confirm(scanName + " tarama görevini iptal etmek istediğinize emin misiniz?")) {
+                alert("Tarama iptal edildi.");
+            }
+        }
+
+        function viewScanReport(scanName) {
+            alert(scanName + " tamamlama raporu yükleniyor...");
+        }
+    </script>
+</body>
+</html>

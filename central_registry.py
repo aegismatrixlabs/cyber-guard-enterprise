@@ -4,6 +4,7 @@ from saas_system_restore import restore_system_snapshot
 from tenant_isolation import TenantIsolationManager
 from feature_scanner_core import FeatureScannerCore
 from feature_reporting import FeatureReportingModule
+from feature_billing import FeatureBillingModule
 
 class CentralRegistry:
     def __init__(self):
@@ -22,4 +23,5 @@ if __name__ == "__main__":
     registry.register_module("tenant_isolation", tenant_mgr)
     registry.register_module("feature_scanner_core", scanner_core)
     registry.register_module("feature_reporting", reporter_module)
+    registry.register_module("feature_billing", billing_module)
     print("Merkez Kayıt Durumu: Aktif ve Sağlıklı.")

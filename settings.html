@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberGuard Enterprise | Sistem Ayarları ve Entegrasyonlar</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            dark: '#0B132B',
+                            card: '#1C2541',
+                            accent: '#48CAE4',
+                            glow: '#00F5D4',
+                            danger: '#FF3366',
+                            warning: '#FFB703',
+                            success: '#2A9D8F'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-cyber-dark text-slate-100 font-sans antialiased selection:bg-cyber-accent selection:text-cyber-dark">
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="w-64 bg-cyber-card border-r border-slate-800 flex flex-col justify-between hidden lg:flex">
+            <div>
+                <!-- Brand Header -->
+                <div class="h-20 flex items-center px-6 border-b border-slate-800 space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-cyber-accent to-cyber-glow flex items-center justify-center shadow-lg shadow-cyber-accent/20">
+                        <i class="fa-solid fa-shield-halved text-cyber-dark text-xl"></i>
+                    </div>
+                    <span class="text-lg font-bold tracking-wider text-white">CYBER<span class="text-cyber-accent">GUARD</span></span>
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="p-4 space-y-1 text-sm font-medium">
+                    <a href="dashboard.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-chart-pie w-5"></i>
+                        <span>SOC Paneli</span>
+                    </a>
+                    <a href="scans.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-radar w-5"></i>
+                        <span>Zafiyet Taramaları</span>
+                    </a>
+                    <a href="assets.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-server w-5"></i>
+                        <span>Varlık Envanteri</span>
+                    </a>
+                    <a href="reports.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-file-shield w-5"></i>
+                        <span>Uyumluluk & Raporlar</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-xl bg-cyber-dark text-cyber-accent border border-slate-800 shadow-inner">
+                        <i class="fa-solid fa-gears w-5"></i>
+                        <span>Sistem Ayarları</span>
+                    </a>
+                </nav>
+            </div>
+
+            <!-- User Session Box -->
+            <div class="p-4 border-t border-slate-800">
+                <div class="flex items-center justify-between bg-cyber-dark p-3 rounded-xl border border-slate-800">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-lg bg-slate-800 flex items-center justify-center text-cyber-accent font-bold">
+                            SA
+                        </div>
+                        <div class="overflow-hidden">
+                            <p class="text-xs font-bold text-white truncate">SOC Analisti</p>
+                            <p class="text-[10px] text-slate-400 truncate">analyst@enterprise.com</p>
+                        </div>
+                    </div>
+                    <a href="login.html" title="Çıkış Yap" class="text-slate-400 hover:text-cyber-danger transition p-2">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col h-screen overflow-y-auto">
+            
+            <!-- Top Navbar -->
+            <header class="h-20 bg-cyber-card/50 backdrop-blur-md border-b border-slate-800 px-8 flex items-center justify-between sticky top-0 z-40">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-xl font-bold text-white">Sistem Ayarları ve Entegrasyonlar</h1>
+                    <span class="px-3 py-1 rounded-full bg-cyber-warning/10 border border-cyber-warning/30 text-cyber-warning text-xs font-semibold flex items-center">
+                        <i class="fa-solid fa-lock mr-2"></i> Enterprise Güvenlik Seviyesi
+                    </span>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <button onclick="saveAllSettings()" class="px-4 py-2 bg-gradient-to-r from-cyber-accent to-cyber-glow text-cyber-dark font-bold text-xs rounded-lg shadow-md hover:opacity-90 transition flex items-center space-x-2">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Değişiklikleri Kaydet</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Body Content -->
+            <div class="p-8 space-y-8 max-w-7xl w-full mx-auto">
+                
+                <!-- Settings Sections Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    <!-- Left 2 Columns: Configurations -->
+                    <div class="lg:col-span-2 space-y-8">
+                        
+                        <!-- General / Tenant Config -->
+                        <div class="bg-cyber-card border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 right-0 h-1 bg-cyber-accent"></div>
+                            <h3 class="text-base font-bold text-white mb-4 flex items-center"><i class="fa-solid fa-building-shield mr-2 text-cyber-accent"></i> Kurum ve Kiracı (Tenant) Bilgileri</h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Kurum Adı</label>
+                                    <input type="text" value="CyberGuard Global Enterprise Ltd." 
+                                        class="w-full px-4 py-3 bg-cyber-dark border border-slate-700 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-cyber-accent transition">
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Tenant ID</label>
+                                        <input type="text" readonly value="tenant_99824_sec_ops" 
+                                            class="w-full px-4 py-3 bg-cyber-dark/50 border border-slate-800 rounded-xl text-sm font-mono text-slate-400 cursor-not-allowed">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Varsayılan Zaman Dilimi</label>
+                                        <select class="w-full px-4 py-3 bg-cyber-dark border border-slate-700 rounded-xl text-sm text-slate-300 focus:outline-none focus:border-cyber-accent transition">
+                                            <option>(UTC+03:00) Istanbul / Europe</option>
+                                            <option>(UTC+00:00) London / GMT</option>
+                                            <option>(UTC-05:00) New York / EST</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SIEM & API Integration -->
+                        <div class="bg-cyber-card border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 right-0 h-1 bg-cyber-success"></div>
+                            <h3 class="text-base font-bold text-white mb-4 flex items-center"><i class="fa-solid fa-network-wired mr-2 text-cyber-success"></i> SIEM & Dış Entegrasyon API Anahtarları</h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Splunk / QRadar Webhook URL</label>
+                                    <input type="text" value="https://siem-collector.enterprise.internal/v2/events" 
+                                        class="w-full px-4 py-3 bg-cyber-dark border border-slate-700 rounded-xl text-sm font-mono text-slate-100 focus:outline-none focus:border-cyber-accent transition">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">API Secret Token (Bearer)</label>
+                                    <div class="flex space-x-3">
+                                        <input type="password" id="apiKeyField" value="cg_live_99f83a2bc7104e8192aa0041" readonly
+                                            class="w-full px-4 py-3 bg-cyber-dark border border-slate-700 rounded-xl text-sm font-mono text-slate-300">
+                                        <button onclick="toggleApiKey()" class="px-4 py-3 bg-cyber-dark border border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs transition" title="Göster/Gizle"><i class="fa-solid fa-eye" id="eyeIcon"></i></button>
+                                        <button onclick="regenerateApiKey()" class="px-4 py-3 bg-cyber-danger/10 border border-cyber-danger/30 text-cyber-danger hover:bg-cyber-danger/20 rounded-xl text-xs font-bold transition">Yenile</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Right Column: Security Policies & Notifications -->
+                    <div class="space-y-8">
+                        
+                        <!-- Security Policies -->
+                        <div class="bg-cyber-card border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 right-0 h-1 bg-cyber-warning"></div>
+                            <h3 class="text-base font-bold text-white mb-4 flex items-center"><i class="fa-solid fa-shield-cat mr-2 text-cyber-warning"></i> Güvenlik Politikaları</h3>
+                            
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between p-3 bg-cyber-dark/50 rounded-xl border border-slate-800">
+                                    <div>
+                                        <p class="text-xs font-bold text-white">Zorunlu MFA (2FA)</p>
+                                        <p class="text-[10px] text-slate-400">Tüm analistler için TOTP onayı</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked class="sr-only peer">
+                                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyber-accent"></div>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-cyber-dark/50 rounded-xl border border-slate-800">
+                                    <div>
+                                        <p class="text-xs font-bold text-white">Otomatik Karantina</p>
+                                        <p class="text-[10px] text-slate-400">Kritik zafiyette hostu yalıt</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked class="sr-only peer">
+                                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyber-accent"></div>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-cyber-dark/50 rounded-xl border border-slate-800">
+                                    <div>
+                                        <p class="text-xs font-bold text-white">Sıkı Oturum Zaman Aşımı</p>
+                                        <p class="text-[10px] text-slate-400">15 dakika inaktiflikte kilitle</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" class="sr-only peer">
+                                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyber-accent"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Danger Zone -->
+                        <div class="bg-cyber-card border border-cyber-danger/30 rounded-2xl p-6 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 right-0 h-1 bg-cyber-danger"></div>
+                            <h3 class="text-base font-bold text-cyber-danger mb-2 flex items-center"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Tehlikeli Bölge</h3>
+                            <p class="text-xs text-slate-400 mb-4">Tüm tarama geçmişini sıfırlayın veya tenant veritabanını temizleyin.</p>
+                            
+                            <button onclick="dangerPurgeCache()" class="w-full py-3 bg-cyber-danger/10 border border-cyber-danger/40 text-cyber-danger font-bold rounded-xl text-xs hover:bg-cyber-danger/20 transition flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-bomb"></i>
+                                <span>Tüm SOC Önbelleğini Temizle</span>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Security Script & Idempotency / Safe Handler Logic -->
+    <script>
+        let isApiKeyVisible = false;
+
+        function toggleApiKey() {
+            const field = document.getElementById('apiKeyField');
+            const icon = document.getElementById('eyeIcon');
+            isApiKeyVisible = !isApiKeyVisible;
+            if (isApiKeyVisible) {
+                field.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                field.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        let isSavingSettings = false; // Idempotency protection flag
+
+        function saveAllSettings() {
+            if (isSavingSettings) return;
+            isSavingSettings = true;
+
+            try {
+                setTimeout(() => {
+                    alert('Sistem ayarları ve entegrasyon politikaları başarıyla güncellendi.');
+                }, 600);
+            } catch (error) {
+                console.error("Ayar kayıt hatası yakalandı.");
+            } finally {
+                setTimeout(() => {
+                    isSavingSettings = false;
+                }, 1000);
+            }
+        }
+
+        function regenerateApiKey() {
+            if (confirm("Mevcut API token geçersiz kılınacak. Devam etmek istiyor musunuz?")) {
+                document.getElementById('apiKeyField').value = 'cg_live_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+                alert("Yeni API Anahtarı üretildi.");
+            }
+        }
+
+        function dangerPurgeCache() {
+            if (confirm("DİKKAT: Bu işlem tüm önbelleğe alınmış tarama loglarını ve geçici verileri temizler. Onaylıyor musunuz?")) {
+                alert("Önbellek başarıyla temizlendi.");
+            }
+        }
+    </script>
+</body>
+</html>

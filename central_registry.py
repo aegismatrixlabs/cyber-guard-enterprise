@@ -5,6 +5,7 @@ from tenant_isolation import TenantIsolationManager
 from feature_scanner_core import FeatureScannerCore
 from feature_reporting import FeatureReportingModule
 from feature_billing import FeatureBillingModule
+from api_gateway_waf import ApiGatewayWafModule
 
 class CentralRegistry:
     def __init__(self):
@@ -24,4 +25,5 @@ if __name__ == "__main__":
     registry.register_module("feature_scanner_core", scanner_core)
     registry.register_module("feature_reporting", reporter_module)
     registry.register_module("feature_billing", billing_module)
+    registry.register_module("api_gateway_waf", waf_module)
     print("Merkez Kayıt Durumu: Aktif ve Sağlıklı.")

@@ -5,13 +5,15 @@ from datetime import datetime
 import time
 import uvicorn
 
-app = FastAPI(title="AegisMatrix Core Security API - Async Task Queue Module")
+app = FastAPI(title="AegisMatrix Core Security API - Reporting & Export Module")
 
 fake_users_db = {}
 fake_assets_db = []
 fake_scans_db = []
 fake_roe_approvals = {}
 fake_support_messages: List[Dict[Any, Any]] = []
+fake_cloud_audit_results = []
+fake_reports_db = []
 
 class RegisterModel(BaseModel):
     email: str
@@ -26,11 +28,13 @@ class RoeAcceptModel(BaseModel):
     full_name: str
     company_title: str
 
-class ContactMessageModel(BaseModel):
-    name: str
-    email: EmailStr
-    subject: str
-    message: str
+class CloudAuditModel(BaseModel):
+    provider: str
+    read_only_role_arn: str
+
+class ReportExportModel(BaseModel):
+    report_type: str # SCAN veya CLOUD_AUDIT
+    reference_id: int
 
 @app.post("/api/register", status_code=status.HTTP_201_CREATED)
 async def register(user: RegisterModel):
@@ -84,62 +88,107 @@ async def accept_roe(request: Request, payload: RoeAcceptModel):
         **approval_record
     }
 
-# --- Asenkron Tarama Kuyruğu Fonksiyonu ---
+# --- Otomatik Raporlama ve Dışa Aktarma Modülü ---
+
+@app.post("/api/reports/export", status_code=status.HTTP_201_CREATED)
+async def export_security_report(payload: ReportExportModel):
+    roe_checked = fake_roe_approvals.get("default_user@aegismatrixlabs.com")
+    if not roe_checked or not roe_checked.get("roe_accepted", True):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Güvenlik İhlali: Rapor dışa aktarabilmek için RoE sözleşmesini onaylamalısınız."
+        )
+        
+    report_type = payload.report_type.upper()
+    ref_id = payload.reference_id
+    
+    target_data = None
+    if report_type == "SCAN":
+        for scan in fake_scans_db:
+            if scan["scan_id"] == ref_id:
+                target_data = scan
+                break
+    elif report_type == "CLOUD_AUDIT":
+        for audit in fake_cloud_audit_results:
+            if audit["audit_id"] == ref_id:
+                target_data = audit
+                break
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Geçersiz rapor türü. 'SCAN' veya 'CLOUD_AUDIT' kullanın."
+        )
+        
+    if not target_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Belirtilen referans ID ile ilişkili veri bulunamadı."
+        )
+        
+    report_id = len(fake_reports_db) + 1
+    report_document = {
+        "report_id": report_id,
+        "company": "AegisMatrix Labs",
+        "generated_by": "AegisMatrix Autonomous Reporting Engine",
+        "timestamp": datetime.utcnow().isoformat(),
+        "report_type": report_type,
+        "source_data": target_data,
+        "export_format": "JSON / Structured Audit Package",
+        "status": "READY_FOR_DOWNLOAD"
+    }
+    
+    fake_reports_db.append(report_document)
+    
+    return {
+        "success": True,
+        "message": "Güvenlik raporu başarıyla oluşturuldu ve dışa aktarıldı.",
+        **report_document
+    }
+
+# --- Bulut Denetimi ve Tarama Altyapısı ---
+
+@app.post("/api/cloud/audit", status_code=status.HTTP_200_OK)
+async def audit_cloud_environment(payload: CloudAuditModel):
+    roe_checked = fake_roe_approvals.get("default_user@aegismatrixlabs.com")
+    if not roe_checked or not roe_checked.get("roe_accepted", True):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Güvenlik İhlali: Bulut denetimi başlatmadan önce RoE sözleşmesini onaylamalısınız."
+        )
+        
+    audit_findings = {
+        "audit_id": len(fake_cloud_audit_results) + 1,
+        "provider": payload.provider.upper(),
+        "role_arn": payload.read_only_role_arn,
+        "status": "COMPLETED",
+        "timestamp": datetime.utcnow().isoformat(),
+        "misconfigurations_detected": [
+            {"resource": "S3-Bucket-Data-Store", "severity": "HIGH", "issue": "Public read permissions enabled."}
+        ]
+    }
+    fake_cloud_audit_results.append(audit_findings)
+    return {"success": True, **audit_findings}
 
 def run_background_scan(scan_id: int, target: str):
-    # Arka planda çalışan simüle edilmiş otonom tehdit avcılığı süreci
     for scan in fake_scans_db:
         if scan["scan_id"] == scan_id:
             scan["status"] = "running"
-            time.sleep(2) # Simüle edilmiş tarama süresi
+            time.sleep(1)
             scan["status"] = "completed"
-            scan["vulnerabilities_found"] = 2
-            scan["details"] = f"Target {target} successfully scanned by AegisMatrix Autonomous Agent."
+            scan["vulnerabilities_found"] = 1
             break
 
 @app.post("/api/scans", status_code=status.HTTP_202_ACCEPTED)
 async def create_scan(request: Request, payload: Dict[Any, Any], background_tasks: BackgroundTasks):
     roe_checked = fake_roe_approvals.get("default_user@aegismatrixlabs.com")
     if not roe_checked or not roe_checked.get("roe_accepted", True):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Güvenlik İhlali: Tarama başlatmadan önce Rules of Engagement (RoE) sözleşmesini imzalamalısınız."
-        )
-        
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="RoE gerekli.")
     scan_id = len(fake_scans_db) + 1
-    target = payload.get("target", "unknown-target")
-    
-    new_scan = {
-        "scan_id": scan_id, 
-        "target": target,
-        "status": "queued", 
-        "created_at": datetime.utcnow().isoformat(),
-        **payload
-    }
+    target = payload.get("target", "unknown")
+    new_scan = {"scan_id": scan_id, "target": target, "status": "queued", **payload}
     fake_scans_db.append(new_scan)
-    
-    # Arka plan görevine kuyruğa ekleme
     background_tasks.add_task(run_background_scan, scan_id, target)
-    
-    return {
-        "success": True, 
-        "message": "Otonom tarama asenkron görev kuyruğuna eklendi.", 
-        "scan_id": scan_id,
-        "status": "queued"
-    }
-
-@app.get("/api/scans/{scan_id}", status_code=status.HTTP_200_OK)
-async def get_scan_status(scan_id: int):
-    for scan in fake_scans_db:
-        if scan["scan_id"] == scan_id:
-            return {"success": True, "data": scan}
-            
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Tarama kaydı bulunamadı."
-    )
-
-# --- Kurumsal Sayfalar ---
+    return {"success": True, "scan_id": scan_id, "status": "queued"}
 
 @app.get("/api/pages/about", status_code=status.HTTP_200_OK)
 async def get_about_page():
@@ -148,8 +197,7 @@ async def get_about_page():
         "company": "AegisMatrix Labs",
         "domain": "aegismatrixlabs.com",
         "official_contact_email": "aegismatrixlabs@gmail.com",
-        "mission": "Next-Gen Autonomous SOC and Cyber Intelligence Framework.",
-        "founded": "July 2026"
+        "mission": "Next-Gen Autonomous SOC and Cyber Intelligence Framework."
     }
 
 if __name__ == "__main__":

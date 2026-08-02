@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import logging
 import random
+from typing import List
 
 from database import engine, Base, get_db
 import models
@@ -22,7 +23,7 @@ except Exception as e:
 app = FastAPI(
     title="CyberGuard Enterprise SOC API",
     version="1.0.0",
-    description="Core backend infrastructure for autonomous threat detection and SOC operations."
+    description="Core backend infrastructure for autonomous threat detection, RBAC and SOC operations."
 )
 
 app.add_middleware(
@@ -38,7 +39,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     company_name: str
-    role: str = "SOC Analyst"
+    role: str = "SOC Analyst"  # Admin, SOC Analyst, Auditor
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -52,6 +53,20 @@ class AssetCreateRequest(BaseModel):
 class ScanTriggerRequest(BaseModel):
     asset_id: int
 
+# --- RBAC (Rol Tabanlı Erişim Kontrolü) Yardımcı Sınıfı ---
+class RoleChecker:
+    def __init__(self, allowed_roles: List[str]):
+        self.allowed_roles = allowed_roles
+
+    def __call__(self, user: models.User = Depends(get_current_user)):
+        if user.role not in self.allowed_roles:
+            logger.warning(f"Yetkisiz erişim denemesi: Kullanıcı {user.email} (Rol: {user.role}), Gerekli Roller: {self.allowed_roles}")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Bu işlem için yetkiniz bulunmamaktadır (Yetersiz Rol Hakları)."
+            )
+        return user
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Kritik hata yakalandı [{request.url}]: {str(exc)}")
@@ -62,6 +77,14 @@ async def global_exception_handler(request: Request, exc: Exception):
             "error": "Internal server error occurred. Security team has been notified."
         }
     )
+
+@app.get("/", status_code=status.HTTP_200_OK)
+async def root():
+    return {
+        "success": True,
+        "message": "CyberGuard Enterprise SOC API is running active with RBAC.",
+        "documentation": "/docs"
+    }
 
 @app.get("/api/health", status_code=status.HTTP_200_OK)
 async def health_check():
@@ -99,11 +122,12 @@ async def register_user(payload: RegisterRequest, db: Session = Depends(get_db))
     db.add(new_user)
     db.commit()
 
-    logger.info(f"Yeni kullanıcı kaydedildi: {payload.email} (Şirket: {payload.company_name})")
+    logger.info(f"Yeni kullanıcı kaydedildi: {payload.email} (Rol: {payload.role}, Şirket: {payload.company_name})")
     return {
         "success": True,
         "message": "Kayıt işlemi başarıyla tamamlandı.",
         "email": payload.email,
+        "role": payload.role,
         "company": payload.company_name
     }
 
@@ -127,12 +151,12 @@ async def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
         "role": user.role
     }
 
-# --- Kurumsal Varlık Yönetimi ---
+# --- Kurumsal Varlık Yönetimi (RBAC Korumalı) ---
 
 @app.post("/api/assets", status_code=status.HTTP_201_CREATED)
 async def create_asset(
     payload: AssetCreateRequest, 
-    current_user: models.User = Depends(get_current_user), 
+    current_user: models.User = Depends(RoleChecker(["Admin", "SOC Analyst"])), 
     db: Session = Depends(get_db)
 ):
     new_asset = models.Asset(
@@ -155,7 +179,7 @@ async def create_asset(
 
 @app.get("/api/assets")
 async def list_assets(
-    current_user: models.User = Depends(get_current_user), 
+    current_user: models.User = Depends(RoleChecker(["Admin", "SOC Analyst", "Auditor"])), 
     db: Session = Depends(get_db)
 ):
     assets = db.query(models.Asset).filter(models.Asset.company_id == current_user.company_id).all()
@@ -173,18 +197,14 @@ async def list_assets(
         ]
     }
 
-# --- YENİ: Otonom Tarama Motoru ve Loglama (`/api/scans`) ---
+# --- Otonom Tarama Motoru ve Loglama (RBAC Korumalı) ---
 
 @app.post("/api/scans", status_code=status.HTTP_201_CREATED)
 async def trigger_scan(
     payload: ScanTriggerRequest,
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(RoleChecker(["Admin", "SOC Analyst"])),
     db: Session = Depends(get_db)
 ):
-    """
-    Belirtilen varlık üzerinde otonom zafiyet taraması başlatır ve sonuçları kaydeder.
-    """
-    # Varlığın şirkete ait olup olmadığını doğrula (Multi-tenancy güvenlik kontrolü)
     asset = db.query(models.Asset).filter(
         models.Asset.id == payload.asset_id,
         models.Asset.company_id == current_user.company_id
@@ -196,7 +216,6 @@ async def trigger_scan(
             detail="Varlık bulunamadı veya bu varlığa erişim yetkiniz yok."
         )
 
-    # Simüle edilmiş otonom tarama sonuç üretimi
     vulnerabilities_found = random.randint(0, 3)
     status_result = "Completed" if vulnerabilities_found == 0 else "Vulnerabilities Detected"
     details = f"Scan finished. Found {vulnerabilities_found} potential security findings on IP {asset.ip_address}."
@@ -223,13 +242,9 @@ async def trigger_scan(
 
 @app.get("/api/scans")
 async def list_scans(
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(RoleChecker(["Admin", "SOC Analyst", "Auditor"])),
     db: Session = Depends(get_db)
 ):
-    """
-    Giriş yapan kullanıcının şirketine ait tüm varlıkların tarama geçmişini listeler.
-    """
-    # Şirkete ait varlıkların ID'lerini bul
     company_assets = db.query(models.Asset.id).filter(models.Asset.company_id == current_user.company_id).all()
     asset_ids = [a.id for a in company_assets]
 

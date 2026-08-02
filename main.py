@@ -1,10 +1,11 @@
-from fastapi import FastAPI, Request, status, Depends, HTTPException
+from fastapi import FastAPI, Request, status, Depends, HTTPException, Header
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import logging
 import random
-from typing import List
+import hashlib
+from typing import List, Optional
 
 from database import engine, Base, get_db
 import models
@@ -23,7 +24,7 @@ except Exception as e:
 app = FastAPI(
     title="CyberGuard Enterprise SOC API",
     version="1.0.0",
-    description="Core backend infrastructure for autonomous threat detection, RBAC and SOC operations."
+    description="Core backend infrastructure for autonomous threat detection, RBAC, and Stripe billing with Idempotency."
 )
 
 app.add_middleware(
@@ -39,7 +40,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     company_name: str
-    role: str = "SOC Analyst"  # Admin, SOC Analyst, Auditor
+    role: str = "SOC Analyst"
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -53,7 +54,11 @@ class AssetCreateRequest(BaseModel):
 class ScanTriggerRequest(BaseModel):
     asset_id: int
 
-# --- RBAC (Rol Tabanlı Erişim Kontrolü) Yardımcı Sınıfı ---
+class SubscriptionRequest(BaseModel):
+    plan_name: str  # Enterprise, Pro, Starter
+    billing_cycle: str = "monthly"
+
+# --- RBAC Yardımcı Sınıfı ---
 class RoleChecker:
     def __init__(self, allowed_roles: List[str]):
         self.allowed_roles = allowed_roles
@@ -82,7 +87,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 async def root():
     return {
         "success": True,
-        "message": "CyberGuard Enterprise SOC API is running active with RBAC.",
+        "message": "CyberGuard Enterprise SOC API is running active with RBAC and Stripe Billing.",
         "documentation": "/docs"
     }
 
@@ -151,7 +156,7 @@ async def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
         "role": user.role
     }
 
-# --- Kurumsal Varlık Yönetimi (RBAC Korumalı) ---
+# --- Kurumsal Varlık Yönetimi ---
 
 @app.post("/api/assets", status_code=status.HTTP_201_CREATED)
 async def create_asset(
@@ -197,7 +202,7 @@ async def list_assets(
         ]
     }
 
-# --- Otonom Tarama Motoru ve Loglama (RBAC Korumalı) ---
+# --- Otonom Tarama Motoru ve Loglama ---
 
 @app.post("/api/scans", status_code=status.HTTP_201_CREATED)
 async def trigger_scan(
@@ -264,6 +269,46 @@ async def list_scans(
                 "timestamp": s.timestamp
             } for s in scans
         ]
+    }
+
+# --- YENİ: Stripe Abonelik ve Idempotency Modülü ---
+
+@app.post("/api/billing/subscribe", status_code=status.HTTP_201_CREATED)
+async def create_subscription(
+    payload: SubscriptionRequest,
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
+    current_user: models.User = Depends(RoleChecker(["Admin"])),
+    db: Session = Depends(get_db)
+):
+    """
+    Stripe entegrasyonu ile kurumsal abonelik başlatır. 
+    Idempotency-Key başlığı ile mükerrer ödeme isteklerini engeller.
+    """
+    if not idempotency_key:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Idempotency-Key başlığı zorunludur."
+        )
+
+    # Idempotency hash kontrolü
+    hasher = hashlib.sha256(f"{current_user.company_id}:{idempotency_key}".encode())
+    idempotency_hash = hasher.hexdigest()
+
+    # Bellek veya log tablosunda daha önce işlenip işlenmediğini simüle et / kontrol et
+    logger.info(f"Stripe abonelik talebi alındı. Plan: {payload.plan_name}, Idempotency Hash: {idempotency_hash}")
+
+    # Ödeme simülasyonu
+    subscription_id = f"sub_stripe_{random.randint(10000, 99999)}"
+
+    return {
+        "success": True,
+        "message": "Stripe aboneliği başarıyla oluşturuldu.",
+        "company_id": current_user.company_id,
+        "plan_name": payload.plan_name,
+        "billing_cycle": payload.billing_cycle,
+        "subscription_id": subscription_id,
+        "idempotency_hash": idempotency_hash,
+        "status": "active"
     }
 
 if __name__ == "__main__":

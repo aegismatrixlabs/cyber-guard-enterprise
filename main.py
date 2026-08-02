@@ -1,15 +1,16 @@
 from fastapi import FastAPI, HTTPException, Request, status
-from pydantic import BaseModel
-from typing import Dict, Any
+from pydantic import BaseModel, EmailStr
+from typing import Dict, Any, List
 from datetime import datetime
 import uvicorn
 
-app = FastAPI(title="AegisMatrix Core Security API - RoE Module")
+app = FastAPI(title="AegisMatrix Core Security API - Enterprise Pages Module")
 
 fake_users_db = {}
 fake_assets_db = []
 fake_scans_db = []
-fake_roe_approvals = {}  # user_email -> approval details
+fake_roe_approvals = {}
+fake_support_messages: List[Dict[Any, Any]] = []
 
 class RegisterModel(BaseModel):
     email: str
@@ -23,6 +24,12 @@ class RoeAcceptModel(BaseModel):
     accepted: bool
     full_name: str
     company_title: str
+
+class ContactMessageModel(BaseModel):
+    name: str
+    email: EmailStr
+    subject: str
+    message: str
 
 @app.post("/api/register", status_code=status.HTTP_201_CREATED)
 async def register(user: RegisterModel):
@@ -68,7 +75,6 @@ async def accept_roe(request: Request, payload: RoeAcceptModel):
         "status": "APPROVED"
     }
     
-    # Simüle edilmiş aktif kullanıcıya kaydetme (gerçek senaryoda JWT email veya ID kullanılır)
     fake_roe_approvals["default_user@aegismatrixlabs.com"] = approval_record
     
     return {
@@ -77,9 +83,60 @@ async def accept_roe(request: Request, payload: RoeAcceptModel):
         **approval_record
     }
 
+# --- Kurumsal Sayfalar & Resmi İletişim Entegrasyonu ---
+
+@app.get("/api/pages/about", status_code=status.HTTP_200_OK)
+async def get_about_page():
+    return {
+        "success": True,
+        "company": "AegisMatrix Labs",
+        "domain": "aegismatrixlabs.com",
+        "official_contact_email": "aegismatrixlabs@gmail.com",
+        "mission": "Next-Gen Autonomous SOC and Cyber Intelligence Framework.",
+        "founded": "July 2026"
+    }
+
+@app.get("/api/pages/privacy", status_code=status.HTTP_200_OK)
+async def get_privacy_policy():
+    return {
+        "success": True,
+        "title": "Gizlilik Politikası ve Veri Güvenliği",
+        "contact": "aegismatrixlabs@gmail.com",
+        "details": "AegisMatrix Labs, müşteri verilerini ISO 27001 ve SOC 2 standartlarına uygun olarak şifreler ve izole eder."
+    }
+
+@app.get("/api/pages/help", status_code=status.HTTP_200_OK)
+async def get_help_center():
+    return {
+        "success": True,
+        "support_email": "aegismatrixlabs@gmail.com",
+        "documentation_url": "https://aegismatrixlabs.com/docs",
+        "faq": [
+            {"q": "Varlık doğrulama nasıl yapılır?", "a": "DNS TXT veya HTTP dosya doğrulaması ile."},
+            {"q": "Tarama başlatma şartları nelerdir?", "a": "Rules of Engagement (RoE) onaylanmalıdır."}
+        ]
+    }
+
+@app.post("/api/pages/contact", status_code=status.HTTP_201_CREATED)
+async def submit_contact_message(payload: ContactMessageModel):
+    message_entry = {
+        "id": len(fake_support_messages) + 1,
+        "name": payload.name,
+        "email": payload.email,
+        "subject": payload.subject,
+        "message": payload.message,
+        "target_inbox": "aegismatrixlabs@gmail.com",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    fake_support_messages.append(message_entry)
+    return {
+        "success": True,
+        "message": "Destek talebiniz başarıyla alınmıştır. Talebiniz doğrudan aegismatrixlabs@gmail.com adresine yönlendirilmiştir.",
+        "ticket_id": message_entry["id"]
+    }
+
 @app.post("/api/scans", status_code=status.HTTP_201_CREATED)
 async def create_scan(request: Request, payload: Dict[Any, Any]):
-    # RoE onay kontrolü simülasyonu
     roe_checked = fake_roe_approvals.get("default_user@aegismatrixlabs.com")
     if not roe_checked or not roe_checked.get("roe_accepted", True):
         raise HTTPException(

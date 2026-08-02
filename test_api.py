@@ -33,6 +33,18 @@ def run_tests():
     headers = {"Authorization": f"Bearer {token}"}
     print("   ✅ Giriş başarılı, JWT alındı.\n")
 
+    # 3.1 Kara Liste (Blacklist / .gov / .mil) Negatif Testi
+    blacklisted_payload = {
+        "name": "Secret-State-Gateway",
+        "ip_address": "target.gov",
+        "asset_type": "Cloud Server"
+    }
+    response = requests.post(f"{BASE_URL}/api/assets", json=blacklisted_payload, headers=headers)
+    print(f"3.1 Kara Liste Varlık Ekleme Durum Kodu: {response.status_code}")
+    print(f"   Yanıt: {response.json()}")
+    assert response.status_code == 400, "Sistem kritik .gov uzantılı varlığa izin verdi!"
+    print("   ✅ Kara liste filtresi başarıyla engelledi (.gov uzantısı yasaklı).\n")
+
     # 3. Varlık Ekleme
     asset_payload = {
         "name": "Production-Gateway",

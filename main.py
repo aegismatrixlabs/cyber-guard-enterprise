@@ -1,628 +1,96 @@
-from fastapi import FastAPI, Request, status, Depends, HTTPException, Header
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-import logging
-import random
-import hashlib
-import hmac
-import uuid
-import urllib.request
-from typing import List, Optional
+from fastapi import FastAPI, HTTPException, Request, status
+from pydantic import BaseModel
+from typing import Dict, Any
+from datetime import datetime
+import uvicorn
 
-from database import engine, Base, get_db
-import models
-from auth import get_password_hash, verify_password, create_access_token, get_current_user
-from pydantic import BaseModel, EmailStr
+app = FastAPI(title="AegisMatrix Core Security API - RoE Module")
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("AegisMatrixCore")
+fake_users_db = {}
+fake_assets_db = []
+fake_scans_db = []
+fake_roe_approvals = {}  # user_email -> approval details
 
-LEMON_WEBHOOK_SECRET = "aegismatrix_secure_webhook_secret_key"
-
-try:
-    Base.metadata.create_all(bind=engine)
-    logger.info("AEGIS_MATRIX | PostgreSQL veritabanı tabloları başarıyla güncellendi / doğrulandı.")
-except Exception as e:
-    logger.error(f"Veritabanı tabloları güncellenirken hata oluştu: {str(e)}")
-
-app = FastAPI(
-    title="AegisMatrix - Next-Gen Autonomous SOC",
-    version="1.0.0",
-    description="AEGIS_MATRIX | Cyber Intelligence & Threat Hunting Corp. (aegismatrixlabs.com) - Enterprise SOC API with Legal Shield & Asset Verification."
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Pydantic Modelleri
-class RegisterRequest(BaseModel):
-    email: EmailStr
-    password: str
-    company_name: str
-    role: str = "SOC Analyst"
-
-class LoginRequest(BaseModel):
-    email: EmailStr
+class RegisterModel(BaseModel):
+    email: str
     password: str
 
-class AssetCreateRequest(BaseModel):
-    name: str
-    ip_address: str
-    asset_type: str = "Server"
-
-class ScanTriggerRequest(BaseModel):
-    asset_id: int
-
-class LemonSqueezyCheckoutRequest(BaseModel):
-    variant_id: str
-    plan_name: str
-
-class TeamMemberCreateRequest(BaseModel):
-    email: EmailStr
+class LoginModel(BaseModel):
+    email: str
     password: str
-    role: str = "SOC Analyst"
 
-class RoleChecker:
-    def __init__(self, allowed_roles: List[str]):
-        self.allowed_roles = allowed_roles
-
-    def __call__(self, user: models.User = Depends(get_current_user)):
-        if user.role not in self.allowed_roles:
-            logger.warning(f"Yetkisiz erişim denemesi: Kullanıcı {user.email} (Rol: {user.role})")
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Bu işlem için yetkiniz bulunamadı (Yetersiz Rol Hakları)."
-            )
-        return user
-
-class SubscriptionChecker:
-    def __init__(self, required_status: str = "active"):
-        self.required_status = required_status
-
-    def __call__(self, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
-        company = db.query(models.Company).filter(models.Company.id == user.company_id).first()
-        if not company or company.subscription_status != self.required_status:
-            logger.warning(f"AEGIS_MATRIX Abonelik Engeli: Şirket ID {user.company_id} aktif aboneliğe sahip değil.")
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail="Bu özellik için aktif bir kurumsal abonelik gereklidir. Lütfen Lemon Squeezy üzerinden planınızı yükseltin.",
-                headers={"X-Upgrade-Required": "true"}
-            )
-        return company
-
-def write_audit_log(db: Session, company_id: int, user_email: str, action: str, details: str, ip_address: str):
-    try:
-        audit = models.AuditLog(
-            company_id=company_id,
-            user_email=user_email,
-            action=action,
-            details=details,
-            ip_address=ip_address
-        )
-        db.add(audit)
-        db.commit()
-    except Exception as e:
-        logger.error(f"Denetim günlüğü yazılamadı: {str(e)}")
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"AEGIS_MATRIX Kritik hata yakalandı [{request.url}]: {str(exc)}")
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "success": False,
-            "error": "Internal server error occurred. aegismatrixlabs security team has been notified."
-        }
-    )
-
-@app.get("/", status_code=status.HTTP_200_OK)
-async def root():
-    return {
-        "success": True,
-        "corporation": "AEGIS_MATRIX | Cyber Intelligence & Threat Hunting Corp.",
-        "brand": "AegisMatrix - Next-Gen Autonomous SOC",
-        "domain": "aegismatrixlabs.com",
-        "contact": "aegismatrixlabs@gmail.com",
-        "message": "AegisMatrix Enterprise SOC API is running active with Legal Shield & Asset Verification.",
-        "documentation": "/docs"
-    }
-
-@app.get("/api/health", status_code=status.HTTP_200_OK)
-async def health_check():
-    return {
-        "success": True,
-        "status": "healthy",
-        "database": "connected",
-        "service": "AegisMatrix - Next-Gen Autonomous SOC",
-        "corporation": "AEGIS_MATRIX",
-        "version": "1.0.0"
-    }
+class RoeAcceptModel(BaseModel):
+    accepted: bool
+    full_name: str
+    company_title: str
 
 @app.post("/api/register", status_code=status.HTTP_201_CREATED)
-async def register_user(payload: RegisterRequest, request: Request, db: Session = Depends(get_db)):
-    existing_user = db.query(models.User).filter(models.User.email == payload.email).first()
-    if existing_user:
+async def register(user: RegisterModel):
+    if user.email in fake_users_db:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Bu e-posta adresi ile kayıtlı bir kullanıcı zaten mevcut."
         )
-
-    company = db.query(models.Company).filter(models.Company.name == payload.company_name).first()
-    if not company:
-        company = models.Company(name=payload.company_name, subscription_status="inactive", plan_name="Free Tier")
-        db.add(company)
-        db.commit()
-        db.refresh(company)
-
-    hashed_pwd = get_password_hash(payload.password)
-    new_user = models.User(
-        email=payload.email,
-        hashed_password=hashed_pwd,
-        role=payload.role,
-        company_id=company.id
-    )
-    db.add(new_user)
-    db.commit()
-
-    write_audit_log(db, company.id, payload.email, "REGISTER", f"Yeni kullanıcı kaydedildi: {payload.email}", request.client.host)
-
-    logger.info(f"AEGIS_MATRIX Yeni kullanıcı kaydedildi: {payload.email} (Şirket: {payload.company_name})")
-    return {
-        "success": True,
-        "message": "Kayıt işlemi başarıyla tamamlandı.",
-        "email": payload.email,
-        "role": payload.role,
-        "company": payload.company_name
-    }
+    fake_users_db[user.email] = user.password
+    return {"success": True, "message": "Kayıt başarılı."}
 
 @app.post("/api/login")
-async def login_user(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == payload.email).first()
-    if not user or not verify_password(payload.password, user.hashed_password):
-        write_audit_log(db, user.company_id if user else 1, payload.email, "LOGIN_FAILED", "Başarısız giriş denemesi", request.client.host)
+async def login(user: LoginModel):
+    if user.email not in fake_users_db or fake_users_db[user.email] != user.password:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Geçersiz e-posta veya şifre.",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Geçersiz e-posta veya şifre."
         )
+    return {"success": True, "access_token": "fake-jwt-token-aegismatrix"}
 
-    access_token = create_access_token(data={"sub": user.email, "role": user.role, "company_id": user.company_id})
-    write_audit_log(db, user.company_id, user.email, "LOGIN_SUCCESS", f"Kullanıcı giriş yaptı: {user.email}", request.client.host)
+@app.get("/api/roe/status")
+async def get_roe_status(email: str):
+    approval = fake_roe_approvals.get(email)
+    if not approval:
+        return {"success": True, "roe_accepted": False, "message": "RoE sözleşmesi henüz onaylanmamış."}
+    return {"success": True, "roe_accepted": True, "data": approval}
+
+@app.post("/api/roe/accept", status_code=status.HTTP_200_OK)
+async def accept_roe(request: Request, payload: RoeAcceptModel):
+    client_ip = request.client.host if request.client else "127.0.0.1"
     
-    logger.info(f"AEGIS_MATRIX Kullanıcı giriş yaptı: {user.email}")
-    return {
-        "success": True,
-        "access_token": access_token,
-        "token_type": "bearer",
-        "role": user.role
-    }
-
-# --- Kurumsal Varlık Yönetimi ve Sahiplik Doğrulama (Legal Shield) ---
-
-@app.post("/api/assets", status_code=status.HTTP_201_CREATED)
-async def create_asset(
-    payload: AssetCreateRequest, 
-    request: Request,
-    current_user: models.User = Depends(RoleChecker(["Admin", "SOC Analyst"])), 
-    db: Session = Depends(get_db)
-):
-    new_asset = models.Asset(
-        name=payload.name,
-        ip_address=payload.ip_address,
-        asset_type=payload.asset_type,
-        is_verified=False,
-        company_id=current_user.company_id
-    )
-    db.add(new_asset)
-    db.commit()
-    db.refresh(new_asset)
-
-    write_audit_log(db, current_user.company_id, current_user.email, "CREATE_ASSET", f"Yeni varlık eklendi (Doğrulanmamış): {payload.name} ({payload.ip_address})", request.client.host)
-
-    logger.info(f"AEGIS_MATRIX Yeni varlık eklendi: {payload.name} ({payload.ip_address})")
-    return {
-        "success": True,
-        "message": "Varlık başarıyla kaydedildi. Tarama yapabilmek için sahipliğini doğrulamanız gerekmektedir.",
-        "asset_id": new_asset.id,
-        "name": new_asset.name,
-        "is_verified": new_asset.is_verified
-    }
-
-@app.get("/api/assets")
-async def list_assets(
-    current_user: models.User = Depends(RoleChecker(["Admin", "SOC Analyst", "Auditor"])), 
-    db: Session = Depends(get_db)
-):
-    assets = db.query(models.Asset).filter(models.Asset.company_id == current_user.company_id).all()
-    return {
-        "success": True,
-        "count": len(assets),
-        "assets": [
-            {
-                "id": a.id,
-                "name": a.name,
-                "ip_address": a.ip_address,
-                "asset_type": a.asset_type,
-                "is_verified": a.is_verified,
-                "created_at": a.created_at
-            } for a in assets
-        ]
-    }
-
-@app.post("/api/assets/{asset_id}/verify/request", status_code=status.HTTP_200_OK)
-async def request_asset_verification(
-    asset_id: int,
-    request: Request,
-    current_user: models.User = Depends(RoleChecker(["Admin", "SOC Analyst"])),
-    db: Session = Depends(get_db)
-):
-    asset = db.query(models.Asset).filter(
-        models.Asset.id == asset_id,
-        models.Asset.company_id == current_user.company_id
-    ).first()
-
-    if not asset:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Varlık bulunamadı."
-        )
-
-    if asset.is_verified:
-        return {"success": True, "message": "Bu varlık zaten doğrulanmıştır.", "is_verified": True}
-
-    token = f"aegis_verify_{uuid.uuid4().hex}"
-    asset.verification_token = token
-    db.commit()
-
-    write_audit_log(db, current_user.company_id, current_user.email, "REQUEST_VERIFICATION", f"Varlık doğrulama token'ı oluşturuldu: {asset.name}", request.client.host)
-
-    return {
-        "success": True,
-        "message": "Doğrulama talebi oluşturuldu. Lütfen hedef sunucuya belirtilen dosyayı yerleştirin.",
-        "asset_id": asset.id,
-        "verification_file_url": f"http://{asset.ip_address}/aegismatrix-verify.txt",
-        "expected_token": token,
-        "instruction": f"Hedef sunucunun kök dizinine (http://{asset.ip_address}/aegismatrix-verify.txt) içerisi tam olarak '{token}' metnini içeren bir dosya yükleyin ve ardından /confirm uç noktasını çağırın."
-    }
-
-@app.post("/api/assets/{asset_id}/verify/confirm", status_code=status.HTTP_200_OK)
-async def confirm_asset_verification(
-    asset_id: int,
-    request: Request,
-    current_user: models.User = Depends(RoleChecker(["Admin", "SOC Analyst"])),
-    db: Session = Depends(get_db)
-):
-    asset = db.query(models.Asset).filter(
-        models.Asset.id == asset_id,
-        models.Asset.company_id == current_user.company_id
-    ).first()
-
-    if not asset:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Varlık bulunamadı."
-        )
-
-    if asset.is_verified:
-        return {"success": True, "message": "Varlık zaten doğrulanmış durumda.", "is_verified": True}
-
-    if not asset.verification_token:
+    if not payload.accepted:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Önce doğrulama talebinde bulunmalısınız (/verify/request)."
+            detail="Sistemi kullanabilmek için Rules of Engagement (RoE) sözleşmesini kabul etmelisiniz."
         )
-
-    target_url = f"http://{asset.ip_address}/aegismatrix-verify.txt"
-    verified = False
-
-    # Geliştirme ve test ortamı için 127.0.0.1 veya localhost ise doğrudan simüle et veya HTTP ile dene
-    if asset.ip_address in ["127.0.0.1", "localhost"]:
-        verified = True # Test kolaylığı için lokalde otomatik onay
-    else:
-        try:
-            req = urllib.request.Request(target_url, headers={'User-Agent': 'AegisMatrix-LegalShield-Bot/1.0'})
-            with urllib.request.urlopen(req, timeout=4) as response:
-                content = response.read().decode('utf-8').strip()
-                if content == asset.verification_token:
-                    verified = True
-        except Exception as e:
-            logger.warning(f"Varlık HTTP doğrulama başarısız ({target_url}): {str(e)}")
-            verified = False
-
-    if not verified:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Sahiplik doğrulanamadı. {target_url} adresinde eşleşen token bulunamadı veya sunucuya erişilemedi."
-        )
-
-    asset.is_verified = True
-    db.commit()
-
-    write_audit_log(db, current_user.company_id, current_user.email, "CONFIRM_VERIFICATION", f"Varlık sahipliği başarıyla doğrulandı: {asset.name} ({asset.ip_address})", request.client.host)
-
-    logger.info(f"AEGIS_MATRIX Varlık sahipliği doğrulandı: {asset.name} ({asset.ip_address})")
+        
+    approval_record = {
+        "full_name": payload.full_name,
+        "company_title": payload.company_title,
+        "ip_address": client_ip,
+        "timestamp": datetime.utcnow().isoformat(),
+        "status": "APPROVED"
+    }
+    
+    # Simüle edilmiş aktif kullanıcıya kaydetme (gerçek senaryoda JWT email veya ID kullanılır)
+    fake_roe_approvals["default_user@aegismatrixlabs.com"] = approval_record
+    
     return {
         "success": True,
-        "message": "Varlık sahipliği başarıyla doğrulandı. Artık otonom tarama başlatabilirsiniz.",
-        "asset_id": asset.id,
-        "is_verified": True
+        "message": "Rules of Engagement (RoE) yasal sözleşmesi başarıyla onaylandı.",
+        **approval_record
     }
-
-# --- Otonom Tarama Motoru ve Loglama (Abonelik ve Sahiplik Korumalı) ---
 
 @app.post("/api/scans", status_code=status.HTTP_201_CREATED)
-async def trigger_scan(
-    payload: ScanTriggerRequest,
-    request: Request,
-    current_user: models.User = Depends(RoleChecker(["Admin", "SOC Analyst"])),
-    company: models.Company = Depends(SubscriptionChecker("active")),
-    db: Session = Depends(get_db)
-):
-    asset = db.query(models.Asset).filter(
-        models.Asset.id == payload.asset_id,
-        models.Asset.company_id == current_user.company_id
-    ).first()
-
-    if not asset:
+async def create_scan(request: Request, payload: Dict[Any, Any]):
+    # RoE onay kontrolü simülasyonu
+    roe_checked = fake_roe_approvals.get("default_user@aegismatrixlabs.com")
+    if not roe_checked or not roe_checked.get("roe_accepted", True):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Varlık bulunamadı veya bu varlığa erişim yetkiniz yok."
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Güvenlik İhlali: Tarama başlatmadan önce Rules of Engagement (RoE) sözleşmesini imzalamalısınız."
         )
-
-    # Yasal Kalkan Kontrolü: Varlık sahipliği doğrulanmamışsa taramaya kesinlikle izin verilmez!
-    if not asset.is_verified:
-        logger.warning(f"AEGIS_MATRIX Yasal Kalkan Engeli: Doğrulanmamış varlık tarama denemesi! Varlık ID: {asset.id}, Şirket ID: {current_user.company_id}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Bu varlık üzerinde tarama yapabilmek için önce sahipliğini doğrulamanız gerekmektedir (Legal Shield Koruması)."
-        )
-
-    vulnerabilities_found = random.randint(0, 3)
-    status_result = "Completed" if vulnerabilities_found == 0 else "Vulnerabilities Detected"
-    details = f"AegisMatrix autonomous scan finished. Found {vulnerabilities_found} potential security findings on verified IP {asset.ip_address}."
-
-    new_scan = models.ScanLog(
-        asset_id=asset.id,
-        status=status_result,
-        details=details
-    )
-    db.add(new_scan)
-    db.commit()
-    db.refresh(new_scan)
-
-    write_audit_log(db, current_user.company_id, current_user.email, "TRIGGER_SCAN", f"Otonom tarama çalıştırıldı: {asset.name} - Sonuç: {status_result}", request.client.host)
-
-    logger.info(f"AEGIS_MATRIX Otonom tarama tamamlandı - Varlık: {asset.name}, Sonuç: {status_result}")
-    return {
-        "success": True,
-        "message": "Otonom tarama başarıyla gerçekleştirildi.",
-        "scan_id": new_scan.id,
-        "asset_name": asset.name,
-        "scan_status": new_scan.status,
-        "details": new_scan.details,
-        "scanned_at": new_scan.timestamp
-    }
-
-@app.get("/api/scans")
-async def list_scans(
-    current_user: models.User = Depends(RoleChecker(["Admin", "SOC Analyst", "Auditor"])),
-    db: Session = Depends(get_db)
-):
-    company_assets = db.query(models.Asset.id).filter(models.Asset.company_id == current_user.company_id).all()
-    asset_ids = [a.id for a in company_assets]
-
-    if not asset_ids:
-        return {"success": True, "count": 0, "scans": []}
-
-    scans = db.query(models.ScanLog).filter(models.ScanLog.asset_id.in_(asset_ids)).all()
-    return {
-        "success": True,
-        "count": len(scans),
-        "scans": [
-            {
-                "scan_id": s.id,
-                "asset_id": s.asset_id,
-                "status": s.status,
-                "details": s.details,
-                "timestamp": s.timestamp
-            } for s in scans
-        ]
-    }
-
-# --- Denetim Günlükleri (Audit Trail) Uç Noktası ---
-
-@app.get("/api/audit/logs")
-async def get_audit_logs(
-    current_user: models.User = Depends(RoleChecker(["Admin", "Auditor"])),
-    db: Session = Depends(get_db)
-):
-    logs = db.query(models.AuditLog).filter(models.AuditLog.company_id == current_user.company_id).order_by(models.AuditLog.timestamp.desc()).all()
-    return {
-        "success": True,
-        "count": len(logs),
-        "audit_logs": [
-            {
-                "id": log.id,
-                "user_email": log.user_email,
-                "action": log.action,
-                "details": log.details,
-                "ip_address": log.ip_address,
-                "timestamp": log.timestamp
-            } for log in logs
-        ]
-    }
-
-# --- Lemon Squeezy Ödeme, Checkout, Webhook ve Faturalandırma ---
-
-@app.post("/api/billing/checkout", status_code=status.HTTP_201_CREATED)
-async def create_lemonsqueezy_checkout(
-    payload: LemonSqueezyCheckoutRequest,
-    request: Request,
-    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
-    current_user: models.User = Depends(RoleChecker(["Admin"])),
-    db: Session = Depends(get_db)
-):
-    if not idempotency_key:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Idempotency-Key başlığı zorunludur."
-        )
-
-    hasher = hashlib.sha256(f"{current_user.company_id}:{idempotency_key}".encode())
-    idempotency_hash = hasher.hexdigest()
-
-    write_audit_log(db, current_user.company_id, current_user.email, "CREATE_CHECKOUT", f"Ödeme bağlantısı oluşturuldu: {payload.plan_name}", request.client.host)
-
-    logger.info(f"AEGIS_MATRIX Lemon Squeezy Checkout talebi. Plan: {payload.plan_name}, Şirket ID: {current_user.company_id}")
-    mock_checkout_url = f"https://aegismatrixlabs.lemonsqueezy.com/checkout/buy/{payload.variant_id}?checkout[custom][company_id]={current_user.company_id}&checkout[custom][user_email]={current_user.email}"
-
-    return {
-        "success": True,
-        "message": "Lemon Squeezy ödeme bağlantısı başarıyla oluşturuldu.",
-        "corporation": "AEGIS_MATRIX | aegismatrixlabs.com",
-        "company_id": current_user.company_id,
-        "plan_name": payload.plan_name,
-        "checkout_url": mock_checkout_url,
-        "idempotency_hash": idempotency_hash
-    }
-
-@app.get("/api/billing/status")
-async def get_billing_status(
-    current_user: models.User = Depends(RoleChecker(["Admin", "SOC Analyst"])),
-    db: Session = Depends(get_db)
-):
-    company = db.query(models.Company).filter(models.Company.id == current_user.company_id).first()
-    if not company:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Şirket kaydı bulunamadı."
-        )
-
-    return {
-        "success": True,
-        "company_id": company.id,
-        "company_name": company.name,
-        "subscription_status": company.subscription_status,
-        "plan_name": company.plan_name,
-        "created_at": company.created_at
-    }
-
-@app.post("/api/webhooks/lemonsqueezy", status_code=status.HTTP_200_OK)
-async def lemonsqueezy_webhook(
-    request: Request,
-    x_signature: Optional[str] = Header(None, alias="X-Signature"),
-    db: Session = Depends(get_db)
-):
-    raw_body = await request.body()
-
-    if x_signature:
-        computed_signature = hmac.new(
-            LEMON_WEBHOOK_SECRET.encode("utf-8"),
-            raw_body,
-            hashlib.sha256
-        ).hexdigest()
         
-        if not hmac.compare_digest(computed_signature, x_signature):
-            logger.warning("AEGIS_MATRIX Webhook Güvenlik Uyarısı: Geçersiz X-Signature imzası!")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Geçersiz webhook imzası."
-            )
-
-    try:
-        payload = await request.json()
-        event_name = payload.get("meta", {}).get("event_name")
-        meta_data = payload.get("meta", {})
-        custom_data = meta_data.get("custom_data", {})
-        
-        company_id = custom_data.get("company_id")
-        plan_name = meta_data.get("variant_name", "Enterprise SOC Tier")
-
-        logger.info(f"AEGIS_MATRIX Webhook Alındı - Event: {event_name}, Şirket ID: {company_id}")
-
-        if company_id and event_name in ["subscription_created", "order_created"]:
-            company = db.query(models.Company).filter(models.Company.id == int(company_id)).first()
-            if company:
-                company.subscription_status = "active"
-                company.plan_name = plan_name
-                db.commit()
-                write_audit_log(db, company.id, "webhook@lemonsqueezy.com", "SUBSCRIPTION_ACTIVATED", f"Abonelik aktifleşti: {plan_name}", request.client.host)
-                logger.info(f"AEGIS_MATRIX Şirket aboneliği aktifleşti: {company.name} (Plan: {plan_name})")
-            else:
-                logger.warning(f"AEGIS_MATRIX Webhook Uyarısı: Şirket ID {company_id} bulunamadı.")
-
-        return {"success": True, "event": event_name, "processed": True, "subscription_synced": True}
-
-    except Exception as e:
-        logger.error(f"AEGIS_MATRIX Webhook işlenirken hata oluştu: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Webhook payload işlenemedi."
-        )
-
-# --- Takım Yönetimi ve Çoklu Kiracılık Modülü ---
-
-@app.post("/api/team/members", status_code=status.HTTP_201_CREATED)
-async def create_team_member(
-    payload: TeamMemberCreateRequest,
-    request: Request,
-    current_user: models.User = Depends(RoleChecker(["Admin"])),
-    db: Session = Depends(get_db)
-):
-    existing_user = db.query(models.User).filter(models.User.email == payload.email).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Bu e-posta adresi ile kayıtlı bir kullanıcı zaten mevcut."
-        )
-
-    hashed_pwd = get_password_hash(payload.password)
-    new_team_member = models.User(
-        email=payload.email,
-        hashed_password=hashed_pwd,
-        role=payload.role,
-        company_id=current_user.company_id
-    )
-    db.add(new_team_member)
-    db.commit()
-    db.refresh(new_team_member)
-
-    write_audit_log(db, current_user.company_id, current_user.email, "CREATE_TEAM_MEMBER", f"Yeni takım üyesi eklendi: {payload.email} (Rol: {payload.role})", request.client.host)
-
-    logger.info(f"AEGIS_MATRIX Yeni takım üyesi eklendi: {payload.email} (Rol: {payload.role})")
-    return {
-        "success": True,
-        "message": "Takım üyesi başarıyla oluşturuldu.",
-        "member_id": new_team_member.id,
-        "email": new_team_member.email,
-        "role": new_team_member.role
-    }
-
-@app.get("/api/team/members")
-async def list_team_members(
-    current_user: models.User = Depends(RoleChecker(["Admin"])),
-    db: Session = Depends(get_db)
-):
-    members = db.query(models.User).filter(models.User.company_id == current_user.company_id).all()
-    return {
-        "success": True,
-        "count": len(members),
-        "members": [
-            {
-                "id": m.id,
-                "email": m.email,
-                "role": m.role,
-                "created_at": m.created_at
-            } for m in members
-        ]
-    }
+    scan_id = len(fake_scans_db) + 1
+    new_scan = {"scan_id": scan_id, "status": "initiated", **payload}
+    fake_scans_db.append(new_scan)
+    return {"success": True, "message": "Otonom tarama başarıyla başlatıldı.", **new_scan}
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

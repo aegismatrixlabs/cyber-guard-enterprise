@@ -1,17 +1,31 @@
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import Dict, Any, List
 from datetime import datetime
 import time
 import uvicorn
 
-app = FastAPI(title="AegisMatrix Core Security API - Reporting & Export Module")
+app = FastAPI(
+    title="AegisMatrix Core Security API - Hardened Production Module",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url=None
+)
+
+# CORS ve Güvenlik Sıkılaştırma Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://aegismatrixlabs.com"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 
 fake_users_db = {}
 fake_assets_db = []
 fake_scans_db = []
 fake_roe_approvals = {}
-fake_support_messages: List[Dict[Any, Any]] = []
 fake_cloud_audit_results = []
 fake_reports_db = []
 
@@ -33,8 +47,17 @@ class CloudAuditModel(BaseModel):
     read_only_role_arn: str
 
 class ReportExportModel(BaseModel):
-    report_type: str # SCAN veya CLOUD_AUDIT
+    report_type: str
     reference_id: int
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
 
 @app.post("/api/register", status_code=status.HTTP_201_CREATED)
 async def register(user: RegisterModel):
@@ -88,65 +111,6 @@ async def accept_roe(request: Request, payload: RoeAcceptModel):
         **approval_record
     }
 
-# --- Otomatik Raporlama ve Dışa Aktarma Modülü ---
-
-@app.post("/api/reports/export", status_code=status.HTTP_201_CREATED)
-async def export_security_report(payload: ReportExportModel):
-    roe_checked = fake_roe_approvals.get("default_user@aegismatrixlabs.com")
-    if not roe_checked or not roe_checked.get("roe_accepted", True):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Güvenlik İhlali: Rapor dışa aktarabilmek için RoE sözleşmesini onaylamalısınız."
-        )
-        
-    report_type = payload.report_type.upper()
-    ref_id = payload.reference_id
-    
-    target_data = None
-    if report_type == "SCAN":
-        for scan in fake_scans_db:
-            if scan["scan_id"] == ref_id:
-                target_data = scan
-                break
-    elif report_type == "CLOUD_AUDIT":
-        for audit in fake_cloud_audit_results:
-            if audit["audit_id"] == ref_id:
-                target_data = audit
-                break
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Geçersiz rapor türü. 'SCAN' veya 'CLOUD_AUDIT' kullanın."
-        )
-        
-    if not target_data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Belirtilen referans ID ile ilişkili veri bulunamadı."
-        )
-        
-    report_id = len(fake_reports_db) + 1
-    report_document = {
-        "report_id": report_id,
-        "company": "AegisMatrix Labs",
-        "generated_by": "AegisMatrix Autonomous Reporting Engine",
-        "timestamp": datetime.utcnow().isoformat(),
-        "report_type": report_type,
-        "source_data": target_data,
-        "export_format": "JSON / Structured Audit Package",
-        "status": "READY_FOR_DOWNLOAD"
-    }
-    
-    fake_reports_db.append(report_document)
-    
-    return {
-        "success": True,
-        "message": "Güvenlik raporu başarıyla oluşturuldu ve dışa aktarıldı.",
-        **report_document
-    }
-
-# --- Bulut Denetimi ve Tarama Altyapısı ---
-
 @app.post("/api/cloud/audit", status_code=status.HTTP_200_OK)
 async def audit_cloud_environment(payload: CloudAuditModel):
     roe_checked = fake_roe_approvals.get("default_user@aegismatrixlabs.com")
@@ -189,6 +153,22 @@ async def create_scan(request: Request, payload: Dict[Any, Any], background_task
     fake_scans_db.append(new_scan)
     background_tasks.add_task(run_background_scan, scan_id, target)
     return {"success": True, "scan_id": scan_id, "status": "queued"}
+
+@app.post("/api/reports/export", status_code=status.HTTP_201_CREATED)
+async def export_security_report(payload: ReportExportModel):
+    roe_checked = fake_roe_approvals.get("default_user@aegismatrixlabs.com")
+    if not roe_checked or not roe_checked.get("roe_accepted", True):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="RoE gerekli.")
+        
+    report_id = len(fake_reports_db) + 1
+    report_document = {
+        "report_id": report_id,
+        "company": "AegisMatrix Labs",
+        "timestamp": datetime.utcnow().isoformat(),
+        "status": "READY_FOR_DOWNLOAD"
+    }
+    fake_reports_db.append(report_document)
+    return {"success": True, **report_document}
 
 @app.get("/api/pages/about", status_code=status.HTTP_200_OK)
 async def get_about_page():

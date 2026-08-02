@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
@@ -14,6 +14,7 @@ class Company(Base):
 
     users = relationship("User", back_populates="company", cascade="all, delete-orphan")
     assets = relationship("Asset", back_populates="company", cascade="all, delete-orphan")
+    audit_logs = relationship("AuditLog", back_populates="company", cascade="all, delete-orphan")
 
 class User(Base):
     __tablename__ = "users"
@@ -34,6 +35,8 @@ class Asset(Base):
     name = Column(String, index=True, nullable=False)
     ip_address = Column(String, nullable=False)
     asset_type = Column(String, default="Server")
+    is_verified = Column(Boolean, default=False)
+    verification_token = Column(String, nullable=True)
     company_id = Column(Integer, ForeignKey("companies.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -50,3 +53,16 @@ class ScanLog(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
 
     asset = relationship("Asset", back_populates="scan_logs")
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), index=True)
+    user_email = Column(String, nullable=False)
+    action = Column(String, nullable=False, index=True)
+    details = Column(Text, nullable=True)
+    ip_address = Column(String, nullable=True)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+
+    company = relationship("Company", back_populates="audit_logs")

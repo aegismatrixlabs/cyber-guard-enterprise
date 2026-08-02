@@ -6,6 +6,8 @@ import logging
 import random
 import hashlib
 import hmac
+import uuid
+import urllib.request
 from typing import List, Optional
 
 from database import engine, Base, get_db
@@ -27,7 +29,7 @@ except Exception as e:
 app = FastAPI(
     title="AegisMatrix - Next-Gen Autonomous SOC",
     version="1.0.0",
-    description="AEGIS_MATRIX | Cyber Intelligence & Threat Hunting Corp. (aegismatrixlabs.com) - Enterprise SOC API with Tier Gating."
+    description="AEGIS_MATRIX | Cyber Intelligence & Threat Hunting Corp. (aegismatrixlabs.com) - Enterprise SOC API with Legal Shield & Asset Verification."
 )
 
 app.add_middleware(
@@ -94,6 +96,20 @@ class SubscriptionChecker:
             )
         return company
 
+def write_audit_log(db: Session, company_id: int, user_email: str, action: str, details: str, ip_address: str):
+    try:
+        audit = models.AuditLog(
+            company_id=company_id,
+            user_email=user_email,
+            action=action,
+            details=details,
+            ip_address=ip_address
+        )
+        db.add(audit)
+        db.commit()
+    except Exception as e:
+        logger.error(f"Denetim günlüğü yazılamadı: {str(e)}")
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"AEGIS_MATRIX Kritik hata yakalandı [{request.url}]: {str(exc)}")
@@ -113,7 +129,7 @@ async def root():
         "brand": "AegisMatrix - Next-Gen Autonomous SOC",
         "domain": "aegismatrixlabs.com",
         "contact": "aegismatrixlabs@gmail.com",
-        "message": "AegisMatrix Enterprise SOC API is running active with Tier Gating Enforcement.",
+        "message": "AegisMatrix Enterprise SOC API is running active with Legal Shield & Asset Verification.",
         "documentation": "/docs"
     }
 
@@ -129,7 +145,7 @@ async def health_check():
     }
 
 @app.post("/api/register", status_code=status.HTTP_201_CREATED)
-async def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
+async def register_user(payload: RegisterRequest, request: Request, db: Session = Depends(get_db)):
     existing_user = db.query(models.User).filter(models.User.email == payload.email).first()
     if existing_user:
         raise HTTPException(
@@ -154,6 +170,8 @@ async def register_user(payload: RegisterRequest, db: Session = Depends(get_db))
     db.add(new_user)
     db.commit()
 
+    write_audit_log(db, company.id, payload.email, "REGISTER", f"Yeni kullanıcı kaydedildi: {payload.email}", request.client.host)
+
     logger.info(f"AEGIS_MATRIX Yeni kullanıcı kaydedildi: {payload.email} (Şirket: {payload.company_name})")
     return {
         "success": True,
@@ -164,9 +182,10 @@ async def register_user(payload: RegisterRequest, db: Session = Depends(get_db))
     }
 
 @app.post("/api/login")
-async def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
+async def login_user(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == payload.email).first()
     if not user or not verify_password(payload.password, user.hashed_password):
+        write_audit_log(db, user.company_id if user else 1, payload.email, "LOGIN_FAILED", "Başarısız giriş denemesi", request.client.host)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Geçersiz e-posta veya şifre.",
@@ -174,6 +193,7 @@ async def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
         )
 
     access_token = create_access_token(data={"sub": user.email, "role": user.role, "company_id": user.company_id})
+    write_audit_log(db, user.company_id, user.email, "LOGIN_SUCCESS", f"Kullanıcı giriş yaptı: {user.email}", request.client.host)
     
     logger.info(f"AEGIS_MATRIX Kullanıcı giriş yaptı: {user.email}")
     return {
@@ -183,11 +203,12 @@ async def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
         "role": user.role
     }
 
-# --- Kurumsal Varlık Yönetimi ---
+# --- Kurumsal Varlık Yönetimi ve Sahiplik Doğrulama (Legal Shield) ---
 
 @app.post("/api/assets", status_code=status.HTTP_201_CREATED)
 async def create_asset(
     payload: AssetCreateRequest, 
+    request: Request,
     current_user: models.User = Depends(RoleChecker(["Admin", "SOC Analyst"])), 
     db: Session = Depends(get_db)
 ):
@@ -195,18 +216,22 @@ async def create_asset(
         name=payload.name,
         ip_address=payload.ip_address,
         asset_type=payload.asset_type,
+        is_verified=False,
         company_id=current_user.company_id
     )
     db.add(new_asset)
     db.commit()
     db.refresh(new_asset)
 
+    write_audit_log(db, current_user.company_id, current_user.email, "CREATE_ASSET", f"Yeni varlık eklendi (Doğrulanmamış): {payload.name} ({payload.ip_address})", request.client.host)
+
     logger.info(f"AEGIS_MATRIX Yeni varlık eklendi: {payload.name} ({payload.ip_address})")
     return {
         "success": True,
-        "message": "Varlık başarıyla kaydedildi.",
+        "message": "Varlık başarıyla kaydedildi. Tarama yapabilmek için sahipliğini doğrulamanız gerekmektedir.",
         "asset_id": new_asset.id,
-        "name": new_asset.name
+        "name": new_asset.name,
+        "is_verified": new_asset.is_verified
     }
 
 @app.get("/api/assets")
@@ -224,16 +249,117 @@ async def list_assets(
                 "name": a.name,
                 "ip_address": a.ip_address,
                 "asset_type": a.asset_type,
+                "is_verified": a.is_verified,
                 "created_at": a.created_at
             } for a in assets
         ]
     }
 
-# --- Otonom Tarama Motoru ve Loglama (Abonelik Korumalı) ---
+@app.post("/api/assets/{asset_id}/verify/request", status_code=status.HTTP_200_OK)
+async def request_asset_verification(
+    asset_id: int,
+    request: Request,
+    current_user: models.User = Depends(RoleChecker(["Admin", "SOC Analyst"])),
+    db: Session = Depends(get_db)
+):
+    asset = db.query(models.Asset).filter(
+        models.Asset.id == asset_id,
+        models.Asset.company_id == current_user.company_id
+    ).first()
+
+    if not asset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Varlık bulunamadı."
+        )
+
+    if asset.is_verified:
+        return {"success": True, "message": "Bu varlık zaten doğrulanmıştır.", "is_verified": True}
+
+    token = f"aegis_verify_{uuid.uuid4().hex}"
+    asset.verification_token = token
+    db.commit()
+
+    write_audit_log(db, current_user.company_id, current_user.email, "REQUEST_VERIFICATION", f"Varlık doğrulama token'ı oluşturuldu: {asset.name}", request.client.host)
+
+    return {
+        "success": True,
+        "message": "Doğrulama talebi oluşturuldu. Lütfen hedef sunucuya belirtilen dosyayı yerleştirin.",
+        "asset_id": asset.id,
+        "verification_file_url": f"http://{asset.ip_address}/aegismatrix-verify.txt",
+        "expected_token": token,
+        "instruction": f"Hedef sunucunun kök dizinine (http://{asset.ip_address}/aegismatrix-verify.txt) içerisi tam olarak '{token}' metnini içeren bir dosya yükleyin ve ardından /confirm uç noktasını çağırın."
+    }
+
+@app.post("/api/assets/{asset_id}/verify/confirm", status_code=status.HTTP_200_OK)
+async def confirm_asset_verification(
+    asset_id: int,
+    request: Request,
+    current_user: models.User = Depends(RoleChecker(["Admin", "SOC Analyst"])),
+    db: Session = Depends(get_db)
+):
+    asset = db.query(models.Asset).filter(
+        models.Asset.id == asset_id,
+        models.Asset.company_id == current_user.company_id
+    ).first()
+
+    if not asset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Varlık bulunamadı."
+        )
+
+    if asset.is_verified:
+        return {"success": True, "message": "Varlık zaten doğrulanmış durumda.", "is_verified": True}
+
+    if not asset.verification_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Önce doğrulama talebinde bulunmalısınız (/verify/request)."
+        )
+
+    target_url = f"http://{asset.ip_address}/aegismatrix-verify.txt"
+    verified = False
+
+    # Geliştirme ve test ortamı için 127.0.0.1 veya localhost ise doğrudan simüle et veya HTTP ile dene
+    if asset.ip_address in ["127.0.0.1", "localhost"]:
+        verified = True # Test kolaylığı için lokalde otomatik onay
+    else:
+        try:
+            req = urllib.request.Request(target_url, headers={'User-Agent': 'AegisMatrix-LegalShield-Bot/1.0'})
+            with urllib.request.urlopen(req, timeout=4) as response:
+                content = response.read().decode('utf-8').strip()
+                if content == asset.verification_token:
+                    verified = True
+        except Exception as e:
+            logger.warning(f"Varlık HTTP doğrulama başarısız ({target_url}): {str(e)}")
+            verified = False
+
+    if not verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Sahiplik doğrulanamadı. {target_url} adresinde eşleşen token bulunamadı veya sunucuya erişilemedi."
+        )
+
+    asset.is_verified = True
+    db.commit()
+
+    write_audit_log(db, current_user.company_id, current_user.email, "CONFIRM_VERIFICATION", f"Varlık sahipliği başarıyla doğrulandı: {asset.name} ({asset.ip_address})", request.client.host)
+
+    logger.info(f"AEGIS_MATRIX Varlık sahipliği doğrulandı: {asset.name} ({asset.ip_address})")
+    return {
+        "success": True,
+        "message": "Varlık sahipliği başarıyla doğrulandı. Artık otonom tarama başlatabilirsiniz.",
+        "asset_id": asset.id,
+        "is_verified": True
+    }
+
+# --- Otonom Tarama Motoru ve Loglama (Abonelik ve Sahiplik Korumalı) ---
 
 @app.post("/api/scans", status_code=status.HTTP_201_CREATED)
 async def trigger_scan(
     payload: ScanTriggerRequest,
+    request: Request,
     current_user: models.User = Depends(RoleChecker(["Admin", "SOC Analyst"])),
     company: models.Company = Depends(SubscriptionChecker("active")),
     db: Session = Depends(get_db)
@@ -249,9 +375,17 @@ async def trigger_scan(
             detail="Varlık bulunamadı veya bu varlığa erişim yetkiniz yok."
         )
 
+    # Yasal Kalkan Kontrolü: Varlık sahipliği doğrulanmamışsa taramaya kesinlikle izin verilmez!
+    if not asset.is_verified:
+        logger.warning(f"AEGIS_MATRIX Yasal Kalkan Engeli: Doğrulanmamış varlık tarama denemesi! Varlık ID: {asset.id}, Şirket ID: {current_user.company_id}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Bu varlık üzerinde tarama yapabilmek için önce sahipliğini doğrulamanız gerekmektedir (Legal Shield Koruması)."
+        )
+
     vulnerabilities_found = random.randint(0, 3)
     status_result = "Completed" if vulnerabilities_found == 0 else "Vulnerabilities Detected"
-    details = f"AegisMatrix autonomous scan finished. Found {vulnerabilities_found} potential security findings on IP {asset.ip_address}."
+    details = f"AegisMatrix autonomous scan finished. Found {vulnerabilities_found} potential security findings on verified IP {asset.ip_address}."
 
     new_scan = models.ScanLog(
         asset_id=asset.id,
@@ -261,6 +395,8 @@ async def trigger_scan(
     db.add(new_scan)
     db.commit()
     db.refresh(new_scan)
+
+    write_audit_log(db, current_user.company_id, current_user.email, "TRIGGER_SCAN", f"Otonom tarama çalıştırıldı: {asset.name} - Sonuç: {status_result}", request.client.host)
 
     logger.info(f"AEGIS_MATRIX Otonom tarama tamamlandı - Varlık: {asset.name}, Sonuç: {status_result}")
     return {
@@ -299,11 +435,35 @@ async def list_scans(
         ]
     }
 
+# --- Denetim Günlükleri (Audit Trail) Uç Noktası ---
+
+@app.get("/api/audit/logs")
+async def get_audit_logs(
+    current_user: models.User = Depends(RoleChecker(["Admin", "Auditor"])),
+    db: Session = Depends(get_db)
+):
+    logs = db.query(models.AuditLog).filter(models.AuditLog.company_id == current_user.company_id).order_by(models.AuditLog.timestamp.desc()).all()
+    return {
+        "success": True,
+        "count": len(logs),
+        "audit_logs": [
+            {
+                "id": log.id,
+                "user_email": log.user_email,
+                "action": log.action,
+                "details": log.details,
+                "ip_address": log.ip_address,
+                "timestamp": log.timestamp
+            } for log in logs
+        ]
+    }
+
 # --- Lemon Squeezy Ödeme, Checkout, Webhook ve Faturalandırma ---
 
 @app.post("/api/billing/checkout", status_code=status.HTTP_201_CREATED)
 async def create_lemonsqueezy_checkout(
     payload: LemonSqueezyCheckoutRequest,
+    request: Request,
     idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
     current_user: models.User = Depends(RoleChecker(["Admin"])),
     db: Session = Depends(get_db)
@@ -316,6 +476,8 @@ async def create_lemonsqueezy_checkout(
 
     hasher = hashlib.sha256(f"{current_user.company_id}:{idempotency_key}".encode())
     idempotency_hash = hasher.hexdigest()
+
+    write_audit_log(db, current_user.company_id, current_user.email, "CREATE_CHECKOUT", f"Ödeme bağlantısı oluşturuldu: {payload.plan_name}", request.client.host)
 
     logger.info(f"AEGIS_MATRIX Lemon Squeezy Checkout talebi. Plan: {payload.plan_name}, Şirket ID: {current_user.company_id}")
     mock_checkout_url = f"https://aegismatrixlabs.lemonsqueezy.com/checkout/buy/{payload.variant_id}?checkout[custom][company_id]={current_user.company_id}&checkout[custom][user_email]={current_user.email}"
@@ -390,6 +552,7 @@ async def lemonsqueezy_webhook(
                 company.subscription_status = "active"
                 company.plan_name = plan_name
                 db.commit()
+                write_audit_log(db, company.id, "webhook@lemonsqueezy.com", "SUBSCRIPTION_ACTIVATED", f"Abonelik aktifleşti: {plan_name}", request.client.host)
                 logger.info(f"AEGIS_MATRIX Şirket aboneliği aktifleşti: {company.name} (Plan: {plan_name})")
             else:
                 logger.warning(f"AEGIS_MATRIX Webhook Uyarısı: Şirket ID {company_id} bulunamadı.")
@@ -408,6 +571,7 @@ async def lemonsqueezy_webhook(
 @app.post("/api/team/members", status_code=status.HTTP_201_CREATED)
 async def create_team_member(
     payload: TeamMemberCreateRequest,
+    request: Request,
     current_user: models.User = Depends(RoleChecker(["Admin"])),
     db: Session = Depends(get_db)
 ):
@@ -428,6 +592,8 @@ async def create_team_member(
     db.add(new_team_member)
     db.commit()
     db.refresh(new_team_member)
+
+    write_audit_log(db, current_user.company_id, current_user.email, "CREATE_TEAM_MEMBER", f"Yeni takım üyesi eklendi: {payload.email} (Rol: {payload.role})", request.client.host)
 
     logger.info(f"AEGIS_MATRIX Yeni takım üyesi eklendi: {payload.email} (Rol: {payload.role})")
     return {

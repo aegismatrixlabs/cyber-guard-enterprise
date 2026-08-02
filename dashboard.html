@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CyberGuard Enterprise | SOC Güvenlik Operasyonları Merkezi</title>
-    <!-- Tailwind CSS CDN -->
+    <title>CyberGuard Enterprise - SOC Paneli</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -13,329 +12,162 @@
                 extend: {
                     colors: {
                         cyber: {
-                            dark: '#0B132B',
-                            card: '#1C2541',
-                            accent: '#48CAE4',
-                            glow: '#00F5D4',
-                            danger: '#FF3366',
-                            warning: '#FFB703',
-                            success: '#2A9D8F'
+                            950: '#030712', 900: '#0b0f19', 800: '#111827', 700: '#1f2937',
+                            600: '#374151', 500: '#4b5563', 400: '#9ca3af', 300: '#d1d5db',
+                            primary: '#0ea5e9', accent: '#38bdf8', danger: '#ef4444', warning: '#f59e0b', success: '#10b981'
                         }
                     }
                 }
             }
         }
     </script>
-    <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js for SOC Metrics -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="bg-cyber-dark text-slate-100 font-sans antialiased selection:bg-cyber-accent selection:text-cyber-dark">
+<body class="bg-cyber-950 text-cyber-300 font-sans antialiased min-h-screen flex">
 
-    <div class="flex h-screen overflow-hidden">
-        
-        <!-- Sidebar Navigation -->
-        <aside class="w-64 bg-cyber-card border-r border-slate-800 flex flex-col justify-between hidden lg:flex">
-            <div>
-                <!-- Brand Header -->
-                <div class="h-20 flex items-center px-6 border-b border-slate-800 space-x-3">
-                    <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-cyber-accent to-cyber-glow flex items-center justify-center shadow-lg shadow-cyber-accent/20">
-                        <i class="fa-solid fa-shield-halved text-cyber-dark text-xl"></i>
-                    </div>
-                    <span class="text-lg font-bold tracking-wider text-white">CYBER<span class="text-cyber-accent">GUARD</span></span>
+    <!-- Toast Bildirim Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 space-y-3 pointer-events-none"></div>
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-cyber-900 border-r border-cyber-800 flex flex-col justify-between hidden md:flex">
+        <div class="p-6">
+            <div class="flex items-center space-x-3 mb-8">
+                <div class="bg-cyber-primary/10 p-2 rounded-lg border border-cyber-primary/20">
+                    <i class="fa-solid fa-shield-halved text-cyber-primary text-xl"></i>
                 </div>
-
-                <!-- Navigation Links -->
-                <nav class="p-4 space-y-1 text-sm font-medium">
-                    <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-xl bg-cyber-dark text-cyber-accent border border-slate-800 shadow-inner">
-                        <i class="fa-solid fa-chart-pie w-5"></i>
-                        <span>SOC Paneli</span>
-                    </a>
-                    <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
-                        <i class="fa-solid fa-radar w-5"></i>
-                        <span>Zafiyet Taramaları</span>
-                    </a>
-                    <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
-                        <i class="fa-solid fa-server w-5"></i>
-                        <span>Varlık Envanteri</span>
-                    </a>
-                    <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
-                        <i class="fa-solid fa-file-shield w-5"></i>
-                        <span>Uyumluluk & Raporlar</span>
-                    </a>
-                    <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
-                        <i class="fa-solid fa-gears w-5"></i>
-                        <span>Sistem Ayarları</span>
-                    </a>
-                </nav>
-            </div>
-
-            <!-- User Session Box -->
-            <div class="p-4 border-t border-slate-800">
-                <div class="flex items-center justify-between bg-cyber-dark p-3 rounded-xl border border-slate-800">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-9 h-9 rounded-lg bg-slate-800 flex items-center justify-center text-cyber-accent font-bold">
-                            SA
-                        </div>
-                        <div class="overflow-hidden">
-                            <p class="text-xs font-bold text-white truncate">SOC Analisti</p>
-                            <p class="text-[10px] text-slate-400 truncate">analyst@enterprise.com</p>
-                        </div>
-                    </div>
-                    <a href="login.html" title="Çıkış Yap" class="text-slate-400 hover:text-cyber-danger transition p-2">
-                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                    </a>
+                <div>
+                    <span class="text-lg font-bold tracking-wider text-white">CYBERGUARD</span>
+                    <span class="text-xs block text-cyber-primary font-mono tracking-widest uppercase">Enterprise SOC</span>
                 </div>
             </div>
-        </aside>
+            <nav class="space-y-1 text-sm font-medium">
+                <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white bg-cyber-800 border border-cyber-700/50 shadow-inner"><i class="fa-solid fa-chart-pie w-5 text-cyber-primary"></i> SOC Paneli</a>
+                <a href="scans.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-cyber-400 hover:text-white hover:bg-cyber-800 transition"><i class="fa-solid fa-radar w-5"></i> Zafiyet Taramaları</a>
+                <a href="assets.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-cyber-400 hover:text-white hover:bg-cyber-800 transition"><i class="fa-solid fa-server w-5"></i> Varlık Envanteri</a>
+                <a href="compliance.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-cyber-400 hover:text-white hover:bg-cyber-800 transition"><i class="fa-solid fa-file-shield w-5"></i> Uyumluluk & Raporlar</a>
+                <a href="settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-cyber-400 hover:text-white hover:bg-cyber-800 transition"><i class="fa-solid fa-gear w-5"></i> Sistem Ayarları</a>
+            </nav>
+        </div>
+        <div class="p-4 border-t border-cyber-800">
+            <div class="flex items-center justify-between text-xs text-cyber-400">
+                <span>SOC Analisti</span>
+                <a href="dashboard.html" class="hover:text-white"><i class="fa-solid fa-right-from-bracket"></i></a>
+            </div>
+        </div>
+    </aside>
 
-        <!-- Main Content Area -->
-        <main class="flex-1 flex flex-col h-screen overflow-y-auto">
-            
-            <!-- Top Navbar -->
-            <header class="h-20 bg-cyber-card/50 backdrop-blur-md border-b border-slate-800 px-8 flex items-center justify-between sticky top-0 z-40">
-                <div class="flex items-center space-x-4">
-                    <h1 class="text-xl font-bold text-white">Güvenlik Operasyonları Merkezi (SOC)</h1>
-                    <span class="px-3 py-1 rounded-full bg-cyber-success/10 border border-cyber-success/30 text-cyber-success text-xs font-semibold flex items-center">
-                        <span class="w-2 h-2 rounded-full bg-cyber-success mr-2 animate-pulse"></span> Sistemler Aktif ve Korunuyor
-                    </span>
-                </div>
+    <!-- Main Wrapper -->
+    <div class="flex-1 flex flex-col min-w-0">
+        <header class="bg-cyber-900 border-b border-cyber-800 h-16 flex items-center justify-between px-6 sticky top-0 z-50">
+            <h1 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-chart-line text-cyber-primary"></i> Operasyonel Güvenlik Paneli</h1>
+            <div class="flex items-center gap-3">
+                <button id="btn-quick-scan" onclick="triggerQuickScan()" class="bg-cyber-primary hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-lg shadow-sky-900/20">
+                    <i class="fa-solid fa-play"></i> Hızlı Tehdit Taraması Başlat
+                </button>
+            </div>
+        </header>
 
-                <div class="flex items-center space-x-4">
-                    <button onclick="triggerScan()" id="scanBtn" class="px-4 py-2 bg-gradient-to-r from-cyber-accent to-cyber-glow text-cyber-dark font-bold text-xs rounded-lg shadow-md hover:opacity-90 transition flex items-center space-x-2">
-                        <i class="fa-solid fa-play"></i>
-                        <span>Anlık Tarama Başlat</span>
-                    </button>
-                    <div class="w-10 h-10 rounded-xl bg-cyber-card border border-slate-800 flex items-center justify-center text-slate-400 relative cursor-pointer hover:text-white transition">
-                        <i class="fa-regular fa-bell"></i>
-                        <span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-cyber-danger"></span>
+        <main class="p-6 space-y-6 flex-grow">
+            <!-- İstatistik Kartları -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="bg-cyber-900 border border-cyber-800 p-5 rounded-xl shadow-xl">
+                    <span class="text-xs text-cyber-400 font-mono">KRİTİK ZAFİYETLER</span>
+                    <div class="text-2xl font-bold text-red-400 mt-2 flex items-center justify-between">
+                        <span>3</span>
+                        <i class="fa-solid fa-triangle-exclamation text-red-500/20 text-3xl"></i>
                     </div>
                 </div>
-            </header>
-
-            <!-- Dashboard Body Content -->
-            <div class="p-8 space-y-8 max-w-7xl w-full mx-auto">
-                
-                <!-- Metrics Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <!-- Metric 1 -->
-                    <div class="bg-cyber-card border border-slate-800 p-6 rounded-2xl relative overflow-hidden">
-                        <div class="absolute top-0 left-0 right-0 h-1 bg-cyber-danger"></div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Kritik Zafiyetler</p>
-                                <h3 class="text-3xl font-extrabold text-white mt-2">14</h3>
-                            </div>
-                            <div class="w-12 h-12 rounded-xl bg-cyber-danger/10 text-cyber-danger flex items-center justify-center text-xl">
-                                <i class="fa-solid fa-triangle-exclamation"></i>
-                            </div>
-                        </div>
-                        <p class="text-xs text-cyber-danger mt-4 flex items-center"><i class="fa-solid fa-arrow-up mr-1"></i> %12 artış (Son 24 saat)</p>
-                    </div>
-
-                    <!-- Metric 2 -->
-                    <div class="bg-cyber-card border border-slate-800 p-6 rounded-2xl relative overflow-hidden">
-                        <div class="absolute top-0 left-0 right-0 h-1 bg-cyber-warning"></div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Orta/Yüksek Risk</p>
-                                <h3 class="text-3xl font-extrabold text-white mt-2">48</h3>
-                            </div>
-                            <div class="w-12 h-12 rounded-xl bg-cyber-warning/10 text-cyber-warning flex items-center justify-center text-xl">
-                                <i class="fa-solid fa-shield-exclamation"></i>
-                            </div>
-                        </div>
-                        <p class="text-xs text-slate-400 mt-4">İnceleme bekliyor</p>
-                    </div>
-
-                    <!-- Metric 3 -->
-                    <div class="bg-cyber-card border border-slate-800 p-6 rounded-2xl relative overflow-hidden">
-                        <div class="absolute top-0 left-0 right-0 h-1 bg-cyber-accent"></div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Aktif Varlıklar</p>
-                                <h3 class="text-3xl font-extrabold text-white mt-2">1,280</h3>
-                            </div>
-                            <div class="w-12 h-12 rounded-xl bg-cyber-accent/10 text-cyber-accent flex items-center justify-center text-xl">
-                                <i class="fa-solid fa-network-wired"></i>
-                            </div>
-                        </div>
-                        <p class="text-xs text-cyber-success mt-4 flex items-center"><i class="fa-solid fa-check mr-1"></i> Tamamı taranıyor</p>
-                    </div>
-
-                    <!-- Metric 4 -->
-                    <div class="bg-cyber-card border border-slate-800 p-6 rounded-2xl relative overflow-hidden">
-                        <div class="absolute top-0 left-0 right-0 h-1 bg-cyber-success"></div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Güvenlik Skoru</p>
-                                <h3 class="text-3xl font-extrabold text-white mt-2">84<span class="text-sm text-slate-400">/100</span></h3>
-                            </div>
-                            <div class="w-12 h-12 rounded-xl bg-cyber-success/10 text-cyber-success flex items-center justify-center text-xl">
-                                <i class="fa-solid fa-shield-check"></i>
-                            </div>
-                        </div>
-                        <p class="text-xs text-cyber-success mt-4 flex items-center"><i class="fa-solid fa-arrow-trend-up mr-1"></i> Standartlara Uygun</p>
+                <div class="bg-cyber-900 border border-cyber-800 p-5 rounded-xl shadow-xl">
+                    <span class="text-xs text-cyber-400 font-mono">AKTİF VARLIKLAR</span>
+                    <div class="text-2xl font-bold text-white mt-2 flex items-center justify-between">
+                        <span>142</span>
+                        <i class="fa-solid fa-server text-sky-500/20 text-3xl"></i>
                     </div>
                 </div>
-
-                <!-- Charts Section -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <!-- Vulnerability Trend Chart -->
-                    <div class="lg:col-span-2 bg-cyber-card border border-slate-800 p-6 rounded-2xl">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-base font-bold text-white">Zafiyet Dağılım ve Trend Analizi</h3>
-                            <span class="text-xs text-slate-400">CVSS v3.1 Standardı</span>
-                        </div>
-                        <div class="h-72 relative">
-                            <canvas id="trendChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Risk Distribution Donut -->
-                    <div class="bg-cyber-card border border-slate-800 p-6 rounded-2xl flex flex-col justify-between">
-                        <div>
-                            <h3 class="text-base font-bold text-white mb-2">Risk Kategorizasyonu</h3>
-                            <p class="text-xs text-slate-400 mb-6">Canlı varlık risk oranları</p>
-                        </div>
-                        <div class="h-56 relative flex items-center justify-center">
-                            <canvas id="riskDonutChart"></canvas>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2 mt-4 text-center text-xs">
-                            <div class="bg-cyber-dark p-2 rounded-lg border border-slate-800"><span class="text-cyber-danger font-bold">Kritik</span></div>
-                            <div class="bg-cyber-dark p-2 rounded-lg border border-slate-800"><span class="text-cyber-warning font-bold">Orta</span></div>
-                            <div class="bg-cyber-dark p-2 rounded-lg border border-slate-800"><span class="text-cyber-success font-bold">Düşük</span></div>
-                        </div>
+                <div class="bg-cyber-900 border border-cyber-800 p-5 rounded-xl shadow-xl">
+                    <span class="text-xs text-cyber-400 font-mono">RİSK SKORU</span>
+                    <div class="text-2xl font-bold text-amber-400 mt-2 flex items-center justify-between">
+                        <span>8.4 / 10</span>
+                        <i class="fa-solid fa-gauge-high text-amber-500/20 text-3xl"></i>
                     </div>
                 </div>
-
-                <!-- Recent Security Alerts Table -->
-                <div class="bg-cyber-card border border-slate-800 rounded-2xl overflow-hidden">
-                    <div class="p-6 border-b border-slate-800 flex justify-between items-center">
-                        <div>
-                            <h3 class="text-base font-bold text-white">Son Tespit Edilen Zafiyetler</h3>
-                            <p class="text-xs text-slate-400 mt-1">Ağ altyapısında yakalanan güncel güvenlik bulguları</p>
-                        </div>
-                        <button class="text-xs text-cyber-accent hover:underline font-semibold">Tümünü Gör</button>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-sm">
-                            <thead>
-                                <tr class="bg-cyber-dark/50 text-xs font-semibold uppercase text-slate-400 border-b border-slate-800">
-                                    <th class="py-4 px-6">CVE ID / Bulgular</th>
-                                    <th class="py-4 px-6">Hedef Varlık</th>
-                                    <th class="py-4 px-6">Risk Seviyesi</th>
-                                    <th class="py-4 px-6">CVSS Puanı</th>
-                                    <th class="py-4 px-6">Durum</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-800 text-slate-300">
-                                <tr class="hover:bg-slate-800/30 transition">
-                                    <td class="py-4 px-6 font-mono text-xs text-white">CVE-2026-1092</td>
-                                    <td class="py-4 px-6">api-gateway-prod-01</td>
-                                    <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-full bg-cyber-danger/10 text-cyber-danger border border-cyber-danger/30 text-xs font-bold">Kritik</span></td>
-                                    <td class="py-4 px-6 font-bold">9.8</td>
-                                    <td class="py-4 px-6 text-slate-400">İncelemede</td>
-                                </tr>
-                                <tr class="hover:bg-slate-800/30 transition">
-                                    <td class="py-4 px-6 font-mono text-xs text-white">CVE-2026-0441</td>
-                                    <td class="py-4 px-6">auth-service-node</td>
-                                    <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-full bg-cyber-warning/10 text-cyber-warning border border-cyber-warning/30 text-xs font-bold">Yüksek</span></td>
-                                    <td class="py-4 px-6 font-bold">7.5</td>
-                                    <td class="py-4 px-6 text-slate-400">Beklemede</td>
-                                </tr>
-                                <tr class="hover:bg-slate-800/30 transition">
-                                    <td class="py-4 px-6 font-mono text-xs text-white">CVE-2025-8812</td>
-                                    <td class="py-4 px-6">db-cluster-main</td>
-                                    <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-full bg-cyber-success/10 text-cyber-success border border-cyber-success/30 text-xs font-bold">Düşük</span></td>
-                                    <td class="py-4 px-6 font-bold">3.2</td>
-                                    <td class="py-4 px-6 text-cyber-success">Çözüldü</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                <div class="bg-cyber-900 border border-cyber-800 p-5 rounded-xl shadow-xl">
+                    <span class="text-xs text-cyber-400 font-mono">UYUMLULUK DURUMU</span>
+                    <div class="text-2xl font-bold text-emerald-400 mt-2 flex items-center justify-between">
+                        <span>%94</span>
+                        <i class="fa-solid fa-shield-check text-emerald-500/20 text-3xl"></i>
                     </div>
                 </div>
+            </div>
 
+            <!-- Son Olaylar Tablosu -->
+            <div class="bg-cyber-900 border border-cyber-800 rounded-xl shadow-xl p-6 space-y-4">
+                <h2 class="text-sm font-bold text-white uppercase tracking-wider">Son Tespit Edilen Anomali ve Tehditler</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-cyber-300">
+                        <thead class="bg-cyber-950 text-xs text-cyber-400 uppercase font-mono border-b border-cyber-800">
+                            <tr>
+                                <th class="p-3">Olay ID</th>
+                                <th class="p-3">Modül / Varlık</th>
+                                <th class="p-3">Tehdit Tipi</th>
+                                <th class="p-3">Seviye</th>
+                                <th class="p-3">Aksiyon</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-cyber-800">
+                            <tr>
+                                <td class="p-3 font-mono text-xs text-white">INC-2026-881</td>
+                                <td class="p-3">gateway-prod-01</td>
+                                <td class="p-3">Remote Code Execution (RCE)</td>
+                                <td class="p-3"><span class="px-2 py-0.5 bg-red-950 text-red-400 border border-red-800 rounded text-xs font-bold">CRITICAL</span></td>
+                                <td class="p-3"><a href="vulnerability_details.html" class="text-cyber-primary hover:underline font-medium">İncele &rarr;</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </main>
     </div>
 
-    <!-- Chart Scripts & Idempotency / Safe Handler Logic -->
+    <!-- Script -->
     <script>
-        // Initialize Charts with Qualys/Tenable standard color palette
-        document.addEventListener("DOMContentLoaded", function() {
-            // Trend Line Chart
-            const ctxTrend = document.getElementById('trendChart').getContext('2d');
-            new Chart(ctxTrend, {
-                type: 'line',
-                data: {
-                    labels: ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'],
-                    datasets: [{
-                        label: 'Tespit Edilen Zafiyetler',
-                        data: [12, 19, 15, 25, 22, 30, 28],
-                        borderColor: '#48CAE4',
-                        backgroundColor: 'rgba(72, 202, 228, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
-                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } }
-                    }
-                }
-            });
-
-            // Donut Chart
-            const ctxDonut = document.getElementById('riskDonutChart').getContext('2d');
-            new Chart(ctxDonut, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Kritik', 'Orta', 'Düşük'],
-                    datasets: [{
-                        data: [14, 48, 120],
-                        backgroundColor: ['#FF3366', '#FFB703', '#2A9D8F'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    cutout: '75%'
-                }
-            });
-        });
-
-        // Idempotency & Safe Action Handler for Scan Trigger
-        let isScanning = false;
-        function triggerScan() {
-            if (isScanning) return;
-            isScanning = true;
-
-            const btn = document.getElementById('scanBtn');
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Taranıyor...</span>`;
-            btn.disabled = true;
-
-            try {
-                setTimeout(() => {
-                    alert('Güvenlik taraması başarıyla başlatıldı. Motor logları SOC paneline aktarılıyor.');
-                }, 1500);
-            } catch (error) {
-                console.error("Tarama tetikleme hatası yakalandı.");
-            } finally {
-                setTimeout(() => {
-                    isScanning = false;
-                    btn.innerHTML = originalHTML;
-                    btn.disabled = false;
-                }, 2000);
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-cyber-900 border-emerald-500/40 text-emerald-400';
+            let icon = 'fa-circle-check text-emerald-400';
+            if (type === 'error') {
+                bgClass = 'bg-cyber-900 border-red-500/40 text-red-400';
+                icon = 'fa-circle-exclamation text-red-400';
+            } else if (type === 'info') {
+                bgClass = 'bg-cyber-900 border-sky-500/40 text-sky-400';
+                icon = 'fa-spinner fa-spin text-sky-400';
             }
+
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border ${bgClass} shadow-2xl backdrop-blur-md transition-all duration-300 translate-x-10 opacity-0 text-sm font-medium`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-lg"></i><span>${message}</span>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-x-10', 'opacity-0'), 10);
+
+            setTimeout(() => {
+                toast.classList.add('translate-x-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function triggerQuickScan() {
+            const btn = document.getElementById('btn-quick-scan');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Tarama Başlatılıyor...`;
+            showToast('Tüm aktif ağ varlıkları için yapay zeka destekli tarama kuyruğa alındı.', 'info');
+
+            setTimeout(() => {
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> Tarama Aktif`;
+                btn.className = "bg-emerald-950 text-emerald-400 border border-emerald-800 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 cursor-not-allowed";
+                showToast('Hızlı tehdit taraması başarıyla başlatıldı. Sonuçlar raporlanıyor.', 'success');
+            }, 2000);
         }
     </script>
 </body>

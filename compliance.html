@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CyberGuard Enterprise - Varlık Envanteri</title>
+    <title>CyberGuard Enterprise - Uyumluluk & Raporlar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -43,8 +43,8 @@
             <nav class="space-y-1 text-sm font-medium">
                 <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-cyber-400 hover:text-white hover:bg-cyber-800 transition"><i class="fa-solid fa-chart-pie w-5"></i> SOC Paneli</a>
                 <a href="scans.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-cyber-400 hover:text-white hover:bg-cyber-800 transition"><i class="fa-solid fa-radar w-5"></i> Zafiyet Taramaları</a>
-                <a href="assets.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white bg-cyber-800 border border-cyber-700/50 shadow-inner"><i class="fa-solid fa-server w-5 text-cyber-primary"></i> Varlık Envanteri</a>
-                <a href="compliance.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-cyber-400 hover:text-white hover:bg-cyber-800 transition"><i class="fa-solid fa-file-shield w-5"></i> Uyumluluk & Raporlar</a>
+                <a href="assets.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-cyber-400 hover:text-white hover:bg-cyber-800 transition"><i class="fa-solid fa-server w-5"></i> Varlık Envanteri</a>
+                <a href="compliance.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white bg-cyber-800 border border-cyber-700/50 shadow-inner"><i class="fa-solid fa-file-shield w-5 text-cyber-primary"></i> Uyumluluk & Raporlar</a>
                 <a href="settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-cyber-400 hover:text-white hover:bg-cyber-800 transition"><i class="fa-solid fa-gear w-5"></i> Sistem Ayarları</a>
             </nav>
         </div>
@@ -59,39 +59,37 @@
     <!-- Main Wrapper -->
     <div class="flex-1 flex flex-col min-w-0">
         <header class="bg-cyber-900 border-b border-cyber-800 h-16 flex items-center justify-between px-6 sticky top-0 z-50">
-            <h1 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-server text-cyber-primary"></i> Kurumsal Varlık Envanteri</h1>
+            <h1 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-file-shield text-cyber-primary"></i> Uyumluluk ve Denetim Raporları</h1>
             <div class="flex items-center gap-3">
-                <button id="btn-add-asset" onclick="addNewAsset()" class="bg-cyber-primary hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-lg shadow-sky-900/20">
-                    <i class="fa-solid fa-plus"></i> Yeni Varlık Kaydet
+                <button id="btn-export-report" onclick="exportComplianceReport()" class="bg-cyber-primary hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-lg shadow-sky-900/20">
+                    <i class="fa-solid fa-download"></i> Denetim Raporunu İndir
                 </button>
             </div>
         </header>
 
         <main class="p-6 space-y-6 flex-grow">
-            <!-- Varlık Listesi -->
-            <div class="bg-cyber-900 border border-cyber-800 rounded-xl shadow-xl p-6 space-y-4">
-                <h2 class="text-sm font-bold text-white uppercase tracking-wider">Ağ ve Bulut Varlıkları</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm text-cyber-300">
-                        <thead class="bg-cyber-950 text-xs text-cyber-400 uppercase font-mono border-b border-cyber-800">
-                            <tr>
-                                <th class="p-3">Varlık Adı</th>
-                                <th class="p-3">IP / Hostname</th>
-                                <th class="p-3">Kategori</th>
-                                <th class="p-3">Güvenlik Durumu</th>
-                                <th class="p-3">Aksiyon</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-cyber-800">
-                            <tr>
-                                <td class="p-3 font-mono text-xs text-white">gateway-prod-01</td>
-                                <td class="p-3 font-mono text-xs text-cyber-400">10.0.1.15</td>
-                                <td class="p-3">API Gateway / Cloud</td>
-                                <td class="p-3"><span id="asset-badge-1" class="px-2 py-0.5 bg-red-950 text-red-400 border border-red-800 rounded text-xs font-bold">CRITICAL</span></td>
-                                <td class="p-3"><button onclick="syncAsset('gateway-prod-01')" class="text-cyber-primary hover:underline font-medium">Agent Senkronize Et</button></td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <!-- Standartlar Kartları -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-cyber-900 border border-cyber-800 p-5 rounded-xl shadow-xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-bold text-white">ISO 27001:2022</span>
+                        <span class="px-2 py-0.5 bg-emerald-950 text-emerald-400 border border-emerald-800 rounded text-xs font-bold">%96 UYUMLU</span>
+                    </div>
+                    <p class="text-xs text-cyber-400">Bilgi güvenliği yönetim sistemi ve risk işleme denetimleri aktif olarak doğrulanıyor.</p>
+                </div>
+                <div class="bg-cyber-900 border border-cyber-800 p-5 rounded-xl shadow-xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-bold text-white">PCI-DSS v4.0</span>
+                        <span class="px-2 py-0.5 bg-amber-950 text-amber-400 border border-amber-800 rounded text-xs font-bold">%88 UYUMLU</span>
+                    </div>
+                    <p class="text-xs text-cyber-400">Ödeme kartı endüstrisi veri güvenliği standardı ağ geçidi kontrolleri.</p>
+                </div>
+                <div class="bg-cyber-900 border border-cyber-800 p-5 rounded-xl shadow-xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-bold text-white">SOC 2 Type II</span>
+                        <span class="px-2 py-0.5 bg-emerald-950 text-emerald-400 border border-emerald-800 rounded text-xs font-bold">%94 UYUMLU</span>
+                    </div>
+                    <p class="text-xs text-cyber-400">Güvenilirlik, gizlilik ve güvenlik ilke denetim raporlaması.</p>
                 </div>
             </div>
         </main>
@@ -125,24 +123,17 @@
             }, 4000);
         }
 
-        function addNewAsset() {
-            const btn = document.getElementById('btn-add-asset');
+        function exportComplianceReport() {
+            const btn = document.getElementById('btn-export-report');
             btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Varlık Kaydediliyor...`;
-            showToast('Yeni bulut varlığı ağ topolojisine ekleniyor...', 'info');
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Rapor Hazırlanıyor...`;
+            showToast('Tüm uyumluluk standartları şifreli PDF paketi olarak derleniyor...', 'info');
 
             setTimeout(() => {
-                btn.innerHTML = `<i class="fa-solid fa-check"></i> Varlık Kaydedildi`;
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> Rapor İndirildi`;
                 btn.className = "bg-emerald-950 text-emerald-400 border border-emerald-800 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 cursor-not-allowed";
-                showToast('Yeni varlık envantere başarıyla eklendi ve tarama kuyruğuna alındı.', 'success');
+                showToast('Denetim ve uyumluluk raporu başarıyla indirildi.', 'success');
             }, 2000);
-        }
-
-        function syncAsset(assetName) {
-            showToast(`${assetName} agent bağlantısı test ediliyor...`, 'info');
-            setTimeout(() => {
-                showToast(`${assetName} güvenlik agentı güncel ve senkronize.`, 'success');
-            }, 1500);
         }
     </script>
 </body>

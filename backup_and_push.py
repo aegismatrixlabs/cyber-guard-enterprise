@@ -18,7 +18,7 @@ def create_snapshot():
 def git_sync():
     try:
         subprocess.run(["git", "add", "."], check=True)
-        subprocess.run(["git", "commit", "-m", "AegisMatrix: Abonelik senkronizasyonu ve faturalandırma modülü tamamlandı."], check=True)
+        subprocess.run(["git", "commit", "-m", "AegisMatrix: Tier Gating abonelik denetimi basariyla entegre edildi ve dogrulandi."], check=True)
         subprocess.run(["git", "push", "origin", "main"], check=True)
         print("[SUCCESS] Git versiyonlama ve GitHub senkronizasyonu tamamlandı.")
     except Exception as e:

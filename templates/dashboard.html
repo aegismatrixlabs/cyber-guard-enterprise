@@ -27,11 +27,13 @@
                     <h1 class="text-2xl font-bold text-[#00ff88] flex items-center gap-2"><i class="fas fa-shield-halved"></i> AEGISMATRIX</h1>
                     <p class="text-xs text-[#8b92b6] mt-1">Enterprise Security</p>
                 </div>
-                <nav class="mt-6 px-4 space-y-1">
-                    <a href="#" class="menu-link active flex items-center px-4 py-3 text-sm font-medium text-white rounded-md"><i class="fas fa-chart-pie w-6"></i> Dashboard</a>
+                <nav id="sidebarNav" class="mt-6 px-4 space-y-1">
+                    <a href="/dashboard" class="menu-link active flex items-center px-4 py-3 text-sm font-medium text-white rounded-md"><i class="fas fa-chart-pie w-6"></i> Dashboard</a>
                     <a href="#" class="menu-link flex items-center px-4 py-3 text-sm font-medium text-[#8b92b6] hover:text-white rounded-md"><i class="fas fa-server w-6"></i> Varlıklar</a>
                     <a href="#" class="menu-link flex items-center px-4 py-3 text-sm font-medium text-[#8b92b6] hover:text-white rounded-md"><i class="fas fa-shield w-6"></i> Legal Shield</a>
                     <a href="#" class="menu-link flex items-center px-4 py-3 text-sm font-medium text-[#8b92b6] hover:text-white rounded-md"><i class="fas fa-credit-card w-6"></i> Lisans & Fatura</a>
+                    <!-- Admin Paneli Linki (Adminler İçin Gösterilecek) -->
+                    <a id="adminPanelLink" href="/admin" class="menu-link hidden flex items-center px-4 py-3 text-sm font-medium text-[#58a6ff] hover:text-white rounded-md"><i class="fas fa-user-shield w-6"></i> Admin Paneli</a>
                 </nav>
             </div>
             <div class="p-6 border-t border-[#2a2f44]">
@@ -43,7 +45,7 @@
             <header class="h-16 border-b border-[#2a2f44] bg-[#171b2b] flex items-center justify-between px-6 shadow-lg shrink-0">
                 <div class="flex items-center gap-4">
                     <i class="fas fa-bars text-[#8b92b6] md:hidden cursor-pointer"></i>
-                    <div><span class="text-[#8b92b6] text-xs">Hoş geldin,</span><div class="text-sm font-semibold text-white">Admin</div></div>
+                    <div><span class="text-[#8b92b6] text-xs">Hoş geldin,</span><span id="userNameDisplay" class="text-sm font-semibold text-white ml-1">Admin</span></div>
                 </div>
                 <div class="flex items-center gap-4">
                     <div id="statusBadge" class="px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-400 flex items-center gap-2">
@@ -290,7 +292,20 @@
         }
 
         function performLogout() { localStorage.removeItem('token'); window.location.href = '/'; }
-        window.onload = loadAssets;
+
+        // --- KULLANICI BİLGİLERİNİ YÜKLE ---
+        async function loadUserInfo() {
+            try {
+                const res = await fetchWithAuth('/auth/users/me');
+                const data = await res.json();
+                document.getElementById('userNameDisplay').innerText = data.username;
+                // Eğer Süper Admin ise Admin Panel linkini göster
+                if(data.is_super_admin) {
+                    document.getElementById('adminPanelLink').classList.remove('hidden');
+                }
+            } catch(e) {}
+        }
+        window.onload = async () => { await loadUserInfo(); loadAssets(); };
     </script>
 </body>
 </html>

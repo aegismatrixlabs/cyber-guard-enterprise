@@ -15,8 +15,6 @@ import secrets
 import re
 import ssl
 import socket
-import json
-from urllib.parse import urlparse
 
 # --- PDF ---
 from io import BytesIO
@@ -64,6 +62,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 def check_subscription(current_user):
+    if current_user.is_super_admin: return True
     db = SessionLocal()
     sub = db.query(Subscription).filter(Subscription.username == current_user.username).first()
     db.close()
@@ -76,9 +75,8 @@ def log_audit(username: str, action: str):
     log = AuditLog(username=username, action=action, timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     db.add(log); db.commit(); db.close()
 
-# --- DERİN TARAMA MOTORU (MODÜL 10) ---
+# --- DEEP SCAN ---
 def deep_scan_url(url: str):
-    # 1. Standart HTTP/HTTPS erişim testi
     try:
         r = requests.get(url, timeout=5)
         durum = "ACTIVE" if r.status_code == 200 else "INACTIVE"
@@ -87,7 +85,6 @@ def deep_scan_url(url: str):
         durum = "INACTIVE"
         headers_dict = {}
 
-    # 2. SSL Sertifika Kontrolü
     ssl_days = -1
     try:
         parsed_url = urlparse(url)
@@ -101,17 +98,13 @@ def deep_scan_url(url: str):
     except:
         ssl_days = -1
 
-    # 3. Güvenlik Başlıkları (Headers) Kontrolü
     headers_status = "N/A"
     if durum == "ACTIVE":
         required_headers = ['X-Frame-Options', 'Content-Security-Policy', 'Strict-Transport-Security']
         found_headers = [h for h in required_headers if h in headers_dict]
-        if len(found_headers) >= 2:
-            headers_status = "SECURE"
-        else:
-            headers_status = "MISSING"
+        if len(found_headers) >= 2: headers_status = "SECURE"
+        else: headers_status = "MISSING"
 
-    # 4. Açık Port Kontrolü (Basit TCP, hız için timeout çok düşük)
     open_ports = []
     common_ports = [80, 443, 22, 21]
     try:
@@ -121,29 +114,16 @@ def deep_scan_url(url: str):
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(0.5)
             result = sock.connect_ex((hostname, port))
-            if result == 0:
-                open_ports.append(str(port))
+            if result == 0: open_ports.append(str(port))
             sock.close()
-    except:
-        pass
+    except: pass
 
-    # 5. Genel Risk Skoru Hesaplaması
-    if durum == "INACTIVE":
-        risk_skoru = "HIGH"
-    elif ssl_days < 15 and ssl_days != -1:
-        risk_skoru = "HIGH"
-    elif headers_status == "MISSING":
-        risk_skoru = "MEDIUM"
-    else:
-        risk_skoru = "LOW"
+    if durum == "INACTIVE": risk_skoru = "HIGH"
+    elif ssl_days < 15 and ssl_days != -1: risk_skoru = "HIGH"
+    elif headers_status == "MISSING": risk_skoru = "MEDIUM"
+    else: risk_skoru = "LOW"
 
-    return {
-        "status": durum,
-        "risk_score": risk_skoru,
-        "ssl_days": ssl_days,
-        "headers_status": headers_status,
-        "open_ports": ", ".join(open_ports) if open_ports else "N/A"
-    }
+    return {"status": durum, "risk_score": risk_skoru, "ssl_days": ssl_days, "headers_status": headers_status, "open_ports": ", ".join(open_ports) if open_ports else "N/A"}
 
 # --- ROTALAR ---
 @app.get("/", response_class=HTMLResponse)
@@ -153,6 +133,12 @@ async def root():
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page():
     with open("templates/dashboard.html", "r", encoding="utf-8") as f: return HTMLResponse(content=f.read())
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_page(current_user = Depends(get_current_user)):
+    if not current_user.is_super_admin:
+        raise HTTPException(status_code=403, detail="Yalnızca Süper Yönetici erişebilir.")
+    with open("templates/admin_dashboard.html", "r", encoding="utf-8") as f: return HTMLResponse(content=f.read())
 
 @app.post("/auth/token", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -166,6 +152,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @app.post("/api/subscription/activate")
 async def activate_subscription(plan: str = "Pro", db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    if current_user.is_super_admin:
+        return {"message": "Süper Admin aboneliği gerektirmez."}
     existing = db.query(Subscription).filter(Subscription.username == current_user.username).first()
     expires_at = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
     if existing:
@@ -182,24 +170,17 @@ async def create_asset(asset: dict, db: Session = Depends(get_db), current_user 
     url = asset.get("url")
     scan_result = deep_scan_url(url)
     new_asset = Asset(
-        url=url, 
-        status=scan_result["status"], 
-        risk_score=scan_result["risk_score"],
-        ssl_expiry_days=scan_result["ssl_days"],
-        security_headers_status=scan_result["headers_status"],
-        open_ports=scan_result["open_ports"],
-        created_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        url=url, status=scan_result["status"], risk_score=scan_result["risk_score"],
+        ssl_expiry_days=scan_result["ssl_days"], security_headers_status=scan_result["headers_status"],
+        open_ports=scan_result["open_ports"], created_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         owner_username=current_user.username
     )
     db.add(new_asset)
     log_audit(current_user.username, f"Varlık derin tarandı: {url}")
     db.commit(); db.refresh(new_asset)
     return {
-        "message": f"'{url}' tarandı.", 
-        "status": scan_result["status"], 
-        "risk_score": scan_result["risk_score"],
-        "ssl_days": scan_result["ssl_days"],
-        "headers_status": scan_result["headers_status"],
+        "message": f"'{url}' tarandı.", "status": scan_result["status"], "risk_score": scan_result["risk_score"],
+        "ssl_days": scan_result["ssl_days"], "headers_status": scan_result["headers_status"],
         "open_ports": scan_result["open_ports"]
     }
 
@@ -222,7 +203,6 @@ async def get_logs(db: Session = Depends(get_db), current_user = Depends(get_cur
     logs = db.query(AuditLog).filter(AuditLog.username == current_user.username).order_by(AuditLog.id.desc()).limit(5).all()
     return [{"id": l.id, "username": l.username, "action": l.action, "timestamp": l.timestamp} for l in logs]
 
-# --- DOĞRULAMA ---
 @app.post("/api/verify-domain")
 async def verify_domain_access(verify_req: dict, current_user = Depends(get_current_user)):
     raw_domain = verify_req.get("domain", "").strip()
@@ -238,7 +218,6 @@ async def verify_domain_access(verify_req: dict, current_user = Depends(get_curr
     except Exception as e: pass
     raise HTTPException(status_code=403, detail=f"⚠️ Doğrulama dosyası bulunamadı!\n\nSahipliği doğrulamak için lütfen sitenize aşağıdaki dosyayı ekleyin:\n\nDosya Yolu: /.well-known/cyber-guard-verify.txt\nDosya İçeriği: {verification_token}\n\n(Dosyayı ekledikten sonra tekrar 'Sahipliği Doğrula' butonuna basın).")
 
-# --- PDF ---
 @app.get("/api/report")
 async def download_report(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     assets = db.query(Asset).filter(Asset.owner_username == current_user.username).order_by(Asset.id.desc()).all()
@@ -270,9 +249,11 @@ async def download_report(db: Session = Depends(get_db), current_user = Depends(
     buffer.seek(0)
     return StreamingResponse(buffer, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=aegismatrix_raporu_{datetime.now().strftime('%Y%m%d')}.pdf"})
 
-# --- MODÜL 8: ZAMANLAYICI (DEEP SCAN İLE BÜTÜNLEŞTİRİLDİ) ---
+
+# --- MODÜL 8: ZAMANLAYICI ---
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from urllib.parse import urlparse
 
 def scheduled_scan():
     print(f"🔁 [Scheduler] Derin tarama döngüsü başlatılıyor: {datetime.now()}")
@@ -293,7 +274,6 @@ def scheduled_scan():
     except Exception as e:
         db.rollback()
         print(f"❌ [Scheduler] Tarama sırasında hata: {e}")
-        log_audit("System", f"Otomatik tarama hatası: {e}")
     finally:
         db.close()
 
@@ -307,11 +287,49 @@ def start_scheduler():
 def on_startup():
     start_scheduler()
 
+# --- MODÜL 11 ENTEGRASYONU ---
+from routers import admin
+from routers import auth
+app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+app.include_router(admin.router, prefix="/api", tags=["Admin"])
+
+
+# --- BÜYÜK FİNAL: BAŞLANGIÇ KURUCU (HATA KORUMALI) ---
 @app.on_event("startup")
 def startup_event():
     db = SessionLocal()
-    if not db.query(User).filter(User.username == "admin").first():
-        db.add(User(username="admin", hashed_password=get_password_hash("admin123")))
-        db.commit()
-        print("✅ Kullanıcı oluşturuldu: admin / admin123")
-    db.close()
+    try:
+        # 1. Süper Admin oluştur
+        if not db.query(User).filter(User.is_super_admin == True).first():
+            db.add(User(username="superadmin", hashed_password=get_password_hash("super123"), is_super_admin=True))
+            db.commit()
+            print("✅ Süper Admin oluşturuldu: superadmin / super123")
+        
+        # 2. Normal Admin oluştur ve LİSANS VER
+        if not db.query(User).filter(User.username == "admin").first():
+            db.add(User(username="admin", hashed_password=get_password_hash("admin123")))
+            db.commit()
+            print("✅ Kullanıcı oluşturuldu: admin / admin123")
+            
+            # Admin'e otomatik ACTIVE lisans tanımlıyoruz.
+            db.add(Subscription(
+                username="admin", 
+                plan_name="Pro", 
+                status="ACTIVE", 
+                expires_at=(datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
+            ))
+            db.commit()
+            print("✅ Admin kullanıcısına otomatik lisans verildi.")
+        else:
+            # Eğer admin varsa, lisansı yoksa manuel olarak ekle (Kurtarma modu)
+            sub = db.query(Subscription).filter(Subscription.username == "admin").first()
+            if not sub:
+                db.add(Subscription(username="admin", plan_name="Pro", status="ACTIVE", expires_at=(datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")))
+                db.commit()
+                print("✅ Eksik lisans admin kullanıcısına otomatik olarak verildi.")
+            
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Başlangıç kurulumunda bir hata oluştu: {e}")
+    finally:
+        db.close()

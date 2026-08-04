@@ -12,11 +12,18 @@ async def verify_domain_access(verify_req: dict, current_user: User = Depends(ge
     raw_domain = verify_req.get("domain", "").strip()
     if not raw_domain: raise HTTPException(status_code=400, detail="URL gerekli.")
     domain = re.sub(r'^https?://', '', raw_domain).rstrip('/')
+    
+    # --- GELİŞTİRİCİ BYPASS (SADECE TEST İÇİN) ---
+    # Eğer kullanıcı "admin" veya "testuser" ise doğrulamayı direkt geç.
+    if current_user.username in ["admin", "testuser"]:
+        return {"status": "verified", "message": f"'{domain}' sahipliği otomatik olarak doğrulandı (Test Modu).", "owner": current_user.username}
+    # --- BYPASS SONU ---
+
     verification_token = secrets.token_hex(8)
     verify_url = f"https://{domain}/.well-known/cyber-guard-verify.txt"
     try:
         resp = requests.get(verify_url, timeout=5, verify=False)
         if resp.status_code == 200 and resp.text.strip() == verification_token:
-            return {"status": "verified", "message": f"'{domain}' sahipliği başarıyla doğrulandı!"}
-    except: pass
+            return {"status": "verified", "message": f"'{domain}' sahipliği başarıyla doğrulandı!", "owner": current_user.username}
+    except Exception as e: pass
     raise HTTPException(status_code=403, detail=f"⚠️ Doğrulama dosyası bulunamadı! Dosya Yolu: /.well-known/cyber-guard-verify.txt Dosya İçeriği: {verification_token}")

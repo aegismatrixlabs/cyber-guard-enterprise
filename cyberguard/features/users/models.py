@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 from cyberguard.core.database import Base
 
 class User(Base):
@@ -11,7 +11,14 @@ class User(Base):
     created_at = Column(String)
     reset_token = Column(String, nullable=True)
     reset_token_expiry = Column(String, nullable=True)
-    
-    # --- YENİ ALANLAR ---
     last_login = Column(String, nullable=True)
     last_ip = Column(String, nullable=True)
+    is_verified = Column(Boolean, default=False)
+    verification_token = Column(String, nullable=True)
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, index=True)
+    action = Column(String)
+    timestamp = Column(String)

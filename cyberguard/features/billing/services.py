@@ -13,8 +13,8 @@ def check_subscription(current_user):
         raise HTTPException(status_code=402, detail="Ticari Lisans Kapısı: Aboneliğiniz aktif değil.")
     return True
 
-# Yeni eklenen: Kayıt olan kullanıcıya otomatik lisans verir
+# Lisans verme fonksiyonu (Artık doğrulama sonrası çağrılacak)
 def create_free_trial(db: Session, username: str):
     expires_at = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
-    db.add(Subscription(username=username, plan_name="Free Trial", status="ACTIVE", expires_at=expires_at))
+    db.add(Subscription(username=username, plan_name="Pro", status="ACTIVE", expires_at=expires_at))
     db.commit()

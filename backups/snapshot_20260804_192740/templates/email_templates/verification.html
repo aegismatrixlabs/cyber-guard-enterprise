@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>E-posta Doğrulama</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #0f111a; font-family: 'Inter', Arial, sans-serif; color: #e2e8f0; }
+        .container { max-width: 600px; margin: 40px auto; background-color: #171b2b; border: 1px solid #2a2f44; border-radius: 8px; padding: 40px; text-align: center; }
+        .logo { font-size: 28px; font-weight: bold; color: #00ff88; margin-bottom: 10px; }
+        .btn { display: inline-block; background-color: #00c853; color: #000; font-weight: bold; text-decoration: none; padding: 12px 24px; border-radius: 6px; margin: 20px 0; }
+        .btn:hover { background-color: #00e676; }
+        .footer { font-size: 12px; color: #8b92b6; margin-top: 30px; border-top: 1px solid #2a2f44; padding-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">AEGISMATRIX</div>
+        <h2 style="color: #fff;">Hesabınızı Doğrulayın</h2>
+        <p style="color: #c9d1d9; font-size: 16px;">AEGISMATRIX CyberGuard Enterprise'a hoş geldiniz!</p>
+        <p style="color: #8b92b6;">30 günlük deneme lisansınızı aktif etmek için lütfen aşağıdaki butona tıklayarak e-posta adresinizi doğrulayın.</p>
+        <a href="{{ verify_link }}" class="btn">E-postamı Doğrula ve Lisansımı Aktif Et</a>
+        <p style="font-size: 12px; color: #8b92b6;">Bu doğrulama bağlantısı 24 saat boyunca geçerlidir.</p>
+        <div class="footer">
+            © 2026 CyberGuard Enterprise ARGE Laboratuvarı<br>
+            Bu e-posta bir işlem bildirimidir, lütfen yanıtlamayınız.
+        </div>
+    </div>
+</body>
+</html>

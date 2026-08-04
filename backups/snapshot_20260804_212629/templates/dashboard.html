@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberGuard | Enterprise Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f111a; color: #e2e8f0; }
+        .sidebar { background-color: #1a1d2e; }
+        .bg-card { background-color: #171b2b; border: 1px solid #2a2f44; }
+        .custom-input { background-color: #0f111a; border: 1px solid #2a2f44; transition: all 0.3s; }
+        .custom-input:focus { border-color: #00c853; outline: none; box-shadow: 0 0 0 3px rgba(0, 200, 83, 0.2); }
+        .menu-link { transition: all 0.2s; cursor: pointer; }
+        .menu-link:hover { background-color: rgba(255, 255, 255, 0.05); border-left: 3px solid #00c853; }
+        .menu-link.active { border-left: 3px solid #00c853; background-color: rgba(0, 200, 83, 0.1); }
+        .section-content { display: none; }
+        .section-content.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="flex min-h-screen bg-[#0f111a]">
+        <!-- Sidebar -->
+        <div class="sidebar w-64 flex-shrink-0 flex flex-col justify-between h-screen border-r border-[#2a2f44] sticky top-0 hidden md:flex">
+            <div>
+                <div class="p-6 border-b border-[#2a2f44]">
+                    <h1 class="text-2xl font-bold text-[#00ff88] flex items-center gap-2"><i class="fas fa-shield-halved"></i> AEGISMATRIX</h1>
+                    <p class="text-xs text-[#8b92b6] mt-1">Enterprise Security</p>
+                </div>
+                <nav id="sidebarNav" class="mt-6 px-4 space-y-1">
+                    <a data-section="dashboard" class="menu-link active flex items-center px-4 py-3 text-sm font-medium text-white rounded-md"><i class="fas fa-chart-pie w-6"></i> Dashboard</a>
+                    <a data-section="varliklar" class="menu-link flex items-center px-4 py-3 text-sm font-medium text-[#8b92b6] hover:text-white rounded-md"><i class="fas fa-server w-6"></i> Varlıklar</a>
+                    <a data-section="legal-shield" class="menu-link flex items-center px-4 py-3 text-sm font-medium text-[#8b92b6] hover:text-white rounded-md"><i class="fas fa-shield w-6"></i> Legal Shield</a>
+                    <a data-section="billing" class="menu-link flex items-center px-4 py-3 text-sm font-medium text-[#8b92b6] hover:text-white rounded-md"><i class="fas fa-credit-card w-6"></i> Lisans & Fatura</a>
+                    <a data-section="profil" class="menu-link flex items-center px-4 py-3 text-sm font-medium text-[#8b92b6] hover:text-white rounded-md"><i class="fas fa-user-cog w-6"></i> Hesap Ayarları</a>
+                    <a data-section="yardim" class="menu-link flex items-center px-4 py-3 text-sm font-medium text-[#8b92b6] hover:text-white rounded-md"><i class="fas fa-circle-question w-6"></i> Yardım / SSS</a>
+                    <a data-section="hakkimizda" class="menu-link flex items-center px-4 py-3 text-sm font-medium text-[#8b92b6] hover:text-white rounded-md"><i class="fas fa-circle-info w-6"></i> Hakkımızda</a>
+                    <a id="adminPanelLink" href="/admin" class="menu-link hidden flex items-center px-4 py-3 text-sm font-medium text-[#58a6ff] hover:text-white rounded-md"><i class="fas fa-user-shield w-6"></i> Admin Paneli</a>
+                </nav>
+            </div>
+            <div class="p-6 border-t border-[#2a2f44]">
+                <button onclick="performLogout()" class="menu-link flex w-full items-center px-4 py-3 text-sm font-medium text-[#ff5252] hover:text-white rounded-md"><i class="fas fa-right-from-bracket w-6"></i> Oturumu Kapat</button>
+            </div>
+        </div>
+
+        <div class="flex-1 flex flex-col min-h-screen relative">
+            <header class="h-16 border-b border-[#2a2f44] bg-[#171b2b] flex items-center justify-between px-6 shadow-lg shrink-0">
+                <div class="flex items-center gap-4">
+                    <i class="fas fa-bars text-[#8b92b6] md:hidden cursor-pointer"></i>
+                    <div><span class="text-[#8b92b6] text-xs">Hoş geldin,</span><span id="userNameDisplay" class="text-sm font-semibold text-white ml-1">Admin</span></div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="statusBadge" class="px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-400 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span> CANLI SİSTEM
+                    </div>
+                </div>
+            </header>
+
+            <main class="flex-1 p-6 space-y-6 overflow-y-auto bg-[#0f111a]">
+                
+                <!-- 1. DASHBOARD -->
+                <div id="dashboard" class="section-content active space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div class="bg-card rounded-xl p-6 border border-[#2a2f44] shadow-md"><div class="flex items-center justify-between"><div><p class="text-[#8b92b6] text-xs font-medium">Toplam Varlık</p><h3 id="totalAssets" class="text-3xl font-bold text-white mt-1">0</h3></div><div class="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400"><i class="fas fa-diagram-project text-xl"></i></div></div></div>
+                        <div class="bg-card rounded-xl p-6 border border-[#2a2f44] shadow-md"><div class="flex items-center justify-between"><div><p class="text-[#8b92b6] text-xs font-medium">Aktif (ACTIVE)</p><h3 id="activeAssets" class="text-3xl font-bold text-green-400 mt-1">0</h3></div><div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center text-green-400"><i class="fas fa-shield-halved text-xl"></i></div></div></div>
+                        <div class="bg-card rounded-xl p-6 border border-[#2a2f44] shadow-md"><div class="flex items-center justify-between"><div><p class="text-[#8b92b6] text-xs font-medium">Lisans Durumu</p><h3 id="licenseStatus" class="text-3xl font-bold text-green-400 mt-1">ACTIVE</h3></div><div class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center text-blue-400"><i class="fas fa-file-invoice text-xl"></i></div></div></div>
+                        <div class="bg-card rounded-xl p-6 border border-[#2a2f44] shadow-md"><div class="flex items-center justify-between"><div><p class="text-[#8b92b6] text-xs font-medium">Son Giriş</p><h3 id="lastLoginDisplay" class="text-sm font-bold text-white mt-1">...</h3></div><div class="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center text-purple-400"><i class="fas fa-clock text-xl"></i></div></div></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-card rounded-xl border border-[#2a2f44] shadow-lg p-6"><h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-chart-pie text-[#58a6ff] mr-2"></i>Varlık Dağılımı</h2><div class="relative h-48 w-full flex items-center justify-center"><canvas id="distributionChart" class="w-full h-full"></canvas></div></div>
+                        <div class="bg-card rounded-xl border border-[#2a2f44] shadow-lg p-6"><h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-history text-[#58a6ff] mr-2"></i>Son İşlem Günlükleri (Logs)</h2><div id="logContainer" class="space-y-2 text-sm"><div class="text-center text-[#8b92b6] py-4">Loglar yükleniyor...</div></div></div>
+                    </div>
+                    <div class="bg-card rounded-xl border border-[#2a2f44] shadow-lg overflow-hidden">
+                        <div class="p-6 border-b border-[#2a2f44] flex justify-between items-center"><h2 class="text-lg font-semibold text-white"><i class="fas fa-gavel text-[#58a6ff] mr-2"></i>Legal Shield & Varlık Ekleme</h2><span id="formStatus" class="text-xs px-2 py-1 rounded bg-yellow-500/20 text-yellow-400">Önce sahipliği doğrulayın</span></div>
+                        <div class="p-6 flex flex-col gap-4">
+                            <div class="flex flex-col md:flex-row gap-4"><input type="text" id="inputUrl" placeholder="https://hedef-site.com" class="custom-input flex-1 w-full px-4 py-3 rounded-lg text-white"><button id="btnVerify" onclick="verifyDomain()" class="px-6 py-3 bg-[#58a6ff] hover:bg-[#1f6feb] text-white rounded-lg font-medium transition shadow-md flex items-center justify-center gap-2"><i class="fas fa-check-circle"></i> Sahipliği Doğrula</button></div>
+                            <div class="flex flex-col md:flex-row gap-4 justify-between items-center border-t border-[#2a2f44] pt-4"><div id="verifyResult" class="text-sm text-[#8b92b6]"><i class="fas fa-info-circle"></i> Doğrulama bekleniyor...</div><div class="flex gap-4"><button onclick="activateSubscription()" class="px-4 py-2 bg-[#58a6ff] hover:bg-[#1f6feb] text-white rounded-lg font-medium transition shadow-md"><i class="fas fa-key"></i> Pro Aktif Et</button><button id="btnScan" onclick="addAsset()" disabled class="px-6 py-2 bg-gray-600 text-gray-400 font-bold rounded-lg cursor-not-allowed flex items-center gap-2"><i class="fas fa-bolt"></i> TARA ve EKLE</button></div></div>
+                        </div>
+                        <div id="toastMsg" class="hidden text-center p-4 mx-6 mb-6 rounded-lg"></div>
+                    </div>
+                    <div class="bg-card rounded-xl border border-[#2a2f44] shadow-lg overflow-hidden">
+                        <div class="p-6 border-b border-[#2a2f44] flex justify-between items-center"><h2 class="text-lg font-semibold text-white"><i class="fas fa-list text-[#00ff88] mr-2"></i>Kayıtlı Varlıklar ve Risk Skorları</h2><button onclick="downloadReport()" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition border border-[#2a2f44]"><i class="fas fa-file-pdf text-red-400"></i> Rapor İndir</button></div>
+                        <div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead class="bg-[#0f111a]/50 text-[#8b92b6] text-xs uppercase font-semibold"><tr><th class="p-4">ID</th><th class="p-4">Hedef URL</th><th class="p-4">Durum</th><th class="p-4">Risk Skoru</th><th class="p-4">SSL (Gün)</th><th class="p-4">Headers</th><th class="p-4 text-right">Aksiyon</th></tr></thead><tbody id="tabloGovdesi" class="divide-y divide-[#2a2f44]"></tbody></table></div>
+                    </div>
+                </div>
+
+                <!-- 2. VARLIKLAR SAYFASI -->
+                <div id="varliklar" class="section-content space-y-4">
+                    <div class="bg-card rounded-xl border border-[#2a2f44] shadow-lg p-6">
+                        <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+                            <h2 class="text-xl font-bold text-white"><i class="fas fa-server text-[#00ff88] mr-2"></i>Kayıtlı Varlıklarım</h2>
+                            <div class="flex gap-2 w-full md:w-auto"><input type="text" id="assetSearchInput" placeholder="URL ile ara..." class="custom-input flex-1 md:w-64 px-4 py-2 rounded-lg text-white text-sm"><button onclick="searchAssets()" class="px-4 py-2 bg-[#58a6ff] hover:bg-[#1f6feb] text-white rounded-lg text-sm transition"><i class="fas fa-search"></i></button></div>
+                        </div>
+                        <div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead class="bg-[#0f111a]/50 text-[#8b92b6] text-xs uppercase font-semibold"><tr><th class="p-4">ID</th><th class="p-4">Hedef URL</th><th class="p-4">Durum</th><th class="p-4">Risk Skoru</th><th class="p-4">SSL (Gün)</th><th class="p-4">Headers</th><th class="p-4 text-right">Aksiyon</th></tr></thead><tbody id="varliklarTableBody" class="divide-y divide-[#2a2f44]"><tr><td colspan="7" class="p-8 text-center text-[#8b92b6] text-sm">Yükleniyor...</td></tr></tbody></table></div>
+                        <div class="flex justify-between items-center mt-6 border-t border-[#2a2f44] pt-4 text-sm text-[#8b92b6]"><div id="varliklarPaginationInfo">Toplam: 0 Kayıt</div><div class="flex gap-2"><button id="prevPageBtn" onclick="changePage(-1)" class="px-3 py-1 bg-[#2a2f44] hover:bg-[#3a4f64] rounded disabled:opacity-50" disabled>Önceki</button><button id="nextPageBtn" onclick="changePage(1)" class="px-3 py-1 bg-[#2a2f44] hover:bg-[#3a4f64] rounded disabled:opacity-50" disabled>Sonraki</button></div></div>
+                    </div>
+                </div>
+
+                <!-- 3. LEGAL SHIELD -->
+                <div id="legal-shield" class="section-content bg-card rounded-xl border border-[#2a2f44] shadow-lg p-6">
+                    <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-shield text-[#58a6ff] mr-2"></i>Hukuki Koruma (Legal Shield)</h2>
+                    <p class="text-[#8b92b6]">Yakında: Doğrulama geçmişi ve talepler.</p>
+                </div>
+
+                <!-- 4. LİSANS & FATURA -->
+                <div id="billing" class="section-content bg-card rounded-xl border border-[#2a2f44] shadow-lg p-6">
+                    <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-credit-card text-[#58a6ff] mr-2"></i>Lisans ve Fatura</h2>
+                    <p class="text-[#8b92b6]">Yakında: Gerçek ödeme kapısı ve faturalar.</p>
+                </div>
+
+                <!-- 5. YARDIM / SSS -->
+                <div id="yardim" class="section-content bg-card rounded-xl border border-[#2a2f44] shadow-lg p-6 space-y-4">
+                    <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-circle-question text-[#58a6ff] mr-2"></i>Sıkça Sorulan Sorular (SSS)</h2>
+                    
+                    <div class="border-b border-[#2a2f44] pb-4">
+                        <h3 class="text-white font-bold text-lg">🔹 Varlık Sahipliğini Nasıl Doğrulayabilirim?</h3>
+                        <p class="text-[#8b92b6] text-sm mt-1">Sahipliği doğrulamak için "Legal Shield & Varlık Ekleme" bölümüne gidin. URL'yi girip "Sahipliği Doğrula" butonuna basın. Sistem size benzersiz bir doğrulama kodu (Token) verecektir. Bu kodu, sitenizin kök dizinindeki <span class="text-white bg-black px-1 rounded">/.well-known/cyber-guard-verify.txt</span> dosyasına yapıştırıp kaydedin. Dosyayı yükledikten sonra tekrar "Sahipliği Doğrula" butonuna tıklayın.</p>
+                    </div>
+
+                    <div class="border-b border-[#2a2f44] pb-4">
+                        <h3 class="text-white font-bold text-lg">🔹 Neden "402 Payment Required" Hatası Alıyorum?</h3>
+                        <p class="text-[#8b92b6] text-sm mt-1">Bu hata, sistemin lisans koruma kalkanının (Subscription Gateway) devreye girdiğini gösterir. Hesabınız henüz "Pro" plana aktifleştirilmemiştir. Dashboard'da bulunan mavi <span class="text-white bg-black px-1 rounded">"Pro Aktif Et"</span> butonuna basarak 30 günlük deneme lisansınızı aktifleştirebilirsiniz.</p>
+                    </div>
+
+                    <div class="border-b border-[#2a2f44] pb-4">
+                        <h3 class="text-white font-bold text-lg">🔹 Deep Scanner Ne İşe Yarar?</h3>
+                        <p class="text-[#8b92b6] text-sm mt-1">Deep Scanner, sitenin sadece açılıp açılmadığına (200 OK) bakmaz. Aynı zamanda <strong>SSL Sertifikanızın ne zaman biteceğini</strong> (15 günden az kaldıysa otomatik Risk Skoru "HIGH" olur) ve sitenizin <strong>HTTP Güvenlik Başlıklarını</strong> (X-Frame-Options, CSP, HSTS) kontrol eder. Sistem her 10 dakikada bir tüm varlıklarınızı otomatik olarak tekrar tarar.</p>
+                    </div>
+
+                    <div class="pb-4">
+                        <h3 class="text-white font-bold text-lg">🔹 Raporları Nasıl İndirebilirim?</h3>
+                        <p class="text-[#8b92b6] text-sm mt-1">"Kayıtlı Varlıklar ve Risk Skorları" başlığının hemen yanındaki kırmızı ikonlu <span class="text-white bg-black px-1 rounded">"Rapor İndir"</span> butonuna tıklayarak, anlık varlık durumlarınızı ve risk skorlarınızı içeren Türkçe karakter destekli, profesyonel bir PDF raporunu bilgisayarınıza indirebilirsiniz.</p>
+                    </div>
+                </div>
+
+                <!-- 6. HAKKIMIZDA -->
+                <div id="hakkimizda" class="section-content bg-card rounded-xl border border-[#2a2f44] shadow-lg p-6 space-y-6">
+                    <h2 class="text-xl font-bold text-[#00ff88] mb-4"><i class="fas fa-circle-info text-[#58a6ff] mr-2"></i>AEGISMATRIX - CyberGuard Enterprise</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-white font-bold text-lg mb-2">🛡️ Misyonumuz</h3>
+                            <p class="text-[#8b92b6] text-sm leading-relaxed">
+                                CyberGuard Enterprise; kurumsal işletmelerin dijital varlıklarını (domainler, sunucular) otonom olarak tarayan, güvenlik açıklarını (SSL, Headers) tespit eden ve yasal koruma kalkanlarıyla donatılmış bütünsel bir siber güvenlik SaaS platformudur.
+                            </p>
+                        </div>
+                        <div>
+                            <h3 class="text-white font-bold text-lg mb-2">🧱 Modüler & Güvenli Mimari</h3>
+                            <p class="text-[#8b92b6] text-sm leading-relaxed">
+                                Sistemimiz; JWT ile korunan <strong>Kimlik Doğrulama</strong>, hukuki sorumluluktan koruyan <strong>Legal Shield</strong>, ticari hakları koruyan <strong>Lisans Kapısı</strong>, otomatik <strong>Deep Scanner</strong> ve kurumsal denetimler için <strong>Audit Logs</strong> olmak üzere 5 ana katmandan oluşur.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-[#2a2f44] pt-6">
+                        <h3 class="text-white font-bold text-lg mb-2">🚀 ARGE Süreci ve Gelecek Hedefleri</h3>
+                        <p class="text-[#8b92b6] text-sm leading-relaxed">
+                            AEGISMATRIX projesi, tamamen sıfır maliyetli bir ARGE laboratuvarı olarak başlamıştır. Bugün itibarıyla çok kullanıcılı yapı, otomatik zamanlayıcı, derin varlık taraması ve raporlama gibi temel özellikler tamamlanmıştır. 
+                            <br><br>
+                            <span class="text-[#00ff88]">Yakın gelecekte:</span> Lemon Squeezy ile gerçek ticari ödeme entegrasyonu, e-posta bildirimleri, 7/24 kapsamlı izleme panelleri ve daha fazla siber güvenlik aracının sisteme entegre edilmesi planlanmaktadır.
+                        </p>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = '/';
+
+        async function fetchWithAuth(url, options = {}) {
+            options.headers = { ...options.headers, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+            return fetch(url, options);
+        }
+
+        function showToast(msg, type='success') {
+            const el = document.getElementById('toastMsg');
+            el.classList.remove('hidden');
+            el.innerText = msg;
+            if(type === 'error') { el.className = 'text-center p-4 mx-6 mb-6 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30'; }
+            else if(type === 'info') { el.className = 'text-center p-4 mx-6 mb-6 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30'; }
+            else { el.className = 'text-center p-4 mx-6 mb-6 rounded-lg bg-green-500/20 text-green-400 border border-green-500/30'; }
+            setTimeout(() => { el.classList.add('hidden'); }, 10000);
+        }
+
+        document.querySelectorAll('.menu-link[data-section]').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('.menu-link[data-section]').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+                document.querySelectorAll('.section-content').forEach(s => s.classList.remove('active'));
+                document.getElementById(this.dataset.section).classList.add('active');
+            });
+        });
+
+        let verifiedDomain = "";
+
+        async function loadAssets() {
+            const res = await fetchWithAuth('/api/assets?skip=0&limit=100');
+            const data = await res.json();
+            if(!res.ok) return window.location.href = '/';
+            const tbody = document.getElementById('tabloGovdesi');
+            tbody.innerHTML = '';
+            updateStats(data.items);
+            if(data.items.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-[#8b92b6] text-sm">Henüz hiçbir varlık taranmadı.</td></tr>`; return; }
+            data.items.forEach(a => {
+                const row = tbody.insertRow();
+                const statusClass = a.status === 'ACTIVE' ? 'text-green-400' : 'text-red-400';
+                const riskClass = a.risk_score === 'LOW' ? 'text-green-400' : 'text-red-400';
+                const sslClass = a.ssl_expiry_days < 15 && a.ssl_expiry_days >= 0 ? 'text-red-400 font-bold' : 'text-green-400';
+                row.innerHTML = `
+                    <td class="p-4 text-sm text-[#8b92b6]">#${a.id}</td>
+                    <td class="p-4 text-sm font-medium"><a href="${a.url}" target="_blank" class="text-[#58a6ff] hover:underline">${a.url}</a></td>
+                    <td class="p-4 text-sm font-bold ${statusClass}"><span class="px-2 py-1 rounded-full bg-white/10 text-xs">${a.status}</span></td>
+                    <td class="p-4 text-sm font-bold ${riskClass}">${a.risk_score}</td>
+                    <td class="p-4 text-sm font-bold ${sslClass}">${a.ssl_expiry_days >= 0 ? a.ssl_expiry_days : 'N/A'}</td>
+                    <td class="p-4 text-sm font-bold ${a.security_headers_status === 'SECURE' ? 'text-green-400' : 'text-red-400'}">${a.security_headers_status}</td>
+                    <td class="p-4 text-right"><button onclick="deleteAsset(${a.id})" class="text-red-400 hover:text-red-300 text-sm"><i class="fas fa-trash-can"></i></button></td>
+                `;
+            });
+            try {
+                const logRes = await fetchWithAuth('/api/logs');
+                const logData = await logRes.json();
+                const container = document.getElementById('logContainer');
+                container.innerHTML = '';
+                if(Array.isArray(logData) && logData.length > 0) {
+                    logData.slice(0, 5).forEach(log => {
+                        const div = document.createElement('div');
+                        div.className = 'flex justify-between items-center p-2 border-b border-[#2a2f44] text-[#8b92b6]';
+                        div.innerHTML = `<span><span class="text-white font-bold">${log.username}</span> ${log.action}</span><span class="text-xs opacity-50">${log.timestamp}</span>`;
+                        container.appendChild(div);
+                    });
+                } else { container.innerHTML = `<div class="text-center text-[#8b92b6] text-sm py-4">Henüz işlem kaydı yok.</div>`; }
+            } catch(e) {}
+        }
+
+        async function updateStats(data) {
+            if (!Array.isArray(data)) return;
+            document.getElementById('totalAssets').innerText = data.length;
+            const active = data.filter(a => a.status === 'ACTIVE').length;
+            document.getElementById('activeAssets').innerText = active;
+            if(window.myChart) window.myChart.destroy();
+            const ctx = document.getElementById('distributionChart').getContext('2d');
+            const inactive = data.length - active;
+            window.myChart = new Chart(ctx, { type: 'doughnut', data: { labels: ['Aktif', 'Pasif'], datasets: [{ data: [active, inactive], backgroundColor: ['#00c853', '#ff5252'], borderWidth: 0 }] }, options: { plugins: { legend: { labels: { color: '#e2e8f0' } } }, responsive: true, maintainAspectRatio: false } });
+        }
+
+        async function loadUserInfo() {
+            try {
+                const res = await fetchWithAuth('/auth/users/me'); const data = await res.json();
+                document.getElementById('userNameDisplay').innerText = data.username;
+                document.getElementById('profileUsername').value = data.username;
+                document.getElementById('profileEmail').value = data.email;
+                document.getElementById('lastLoginDisplay').innerText = data.last_login ? data.last_login + ' (IP: ' + data.last_ip + ')' : 'İlk giriş';
+                if(data.is_super_admin) document.getElementById('adminPanelLink').classList.remove('hidden');
+            } catch(e) {}
+        }
+
+        async function changePassword() {
+            const old = document.getElementById('oldPassword').value;
+            const newP = document.getElementById('newPassword').value;
+            const msgEl = document.getElementById('profileMsg');
+            if(!old || !newP) { msgEl.innerText = 'Lütfen tüm alanları doldurun.'; msgEl.style.color = '#ff5252'; return; }
+            const res = await fetchWithAuth('/auth/users/me/password', { method: 'PUT', body: JSON.stringify({ old_password: old, new_password: newP }) });
+            const data = await res.json();
+            if(res.ok) { msgEl.innerText = '✅ ' + data.message; msgEl.style.color = '#00ff88'; document.getElementById('oldPassword').value = ''; document.getElementById('newPassword').value = ''; }
+            else {
+                let errorMsg = data.detail || 'Bir hata oluştu.';
+                if (typeof errorMsg !== 'string') errorMsg = JSON.stringify(errorMsg);
+                msgEl.innerText = '❌ ' + errorMsg; msgEl.style.color = '#ff5252';
+            }
+        }
+
+        async function verifyDomain() {
+            const url = document.getElementById('inputUrl').value;
+            if(!url) return showToast("Lütfen bir URL giriniz.", "error");
+            document.getElementById('verifyResult').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Doğrulanıyor...';
+            const res = await fetchWithAuth('/api/verify-domain', { method: 'POST', body: JSON.stringify({ domain: url }) });
+            const data = await res.json();
+            if(res.ok) {
+                document.getElementById('verifyResult').innerHTML = `<i class="fas fa-check-circle text-green-400"></i> ${data.message}`;
+                verifiedDomain = url;
+                const btnScan = document.getElementById('btnScan');
+                btnScan.disabled = false; btnScan.className = "px-6 py-2 bg-[#00c853] hover:bg-[#00e676] text-black font-bold rounded-lg transition shadow-lg flex items-center gap-2";
+                document.getElementById('formStatus').innerHTML = '✅ Sahiplik doğrulandı, tarama yapabilirsiniz!';
+                document.getElementById('formStatus').className = "text-xs px-2 py-1 rounded bg-green-500/20 text-green-400";
+            } else {
+                document.getElementById('verifyResult').innerHTML = `<i class="fas fa-info-circle text-blue-400"></i> Lütfen aşağıdaki talimatları uygulayın.`;
+                showToast(data.detail || "Hata oluştu!", "info");
+            }
+        }
+
+        async function addAsset() {
+            if(!verifiedDomain) return showToast("Önce 'Sahipliği Doğrula' butonuna basmalısınız!", "error");
+            const res = await fetchWithAuth('/api/assets', { method: 'POST', body: JSON.stringify({ url: verifiedDomain }) });
+            const data = await res.json();
+            if(res.ok) { showToast(data.message, "success"); document.getElementById('inputUrl').value = ''; document.getElementById('btnScan').disabled = true; document.getElementById('btnScan').className = "px-6 py-2 bg-gray-600 text-gray-400 font-bold rounded-lg cursor-not-allowed"; document.getElementById('verifyResult').innerHTML = `<i class="fas fa-info-circle"></i> Doğrulama bekleniyor...`; verifiedDomain = ""; loadAssets(); } 
+            else { showToast(data.detail || "Hata oluştu!", "error"); }
+        }
+
+        async function deleteAsset(id) {
+            if(confirm("Bu varlığı silmek istediğinize emin misiniz?")) {
+                const res = await fetchWithAuth(`/api/assets/${id}`, { method: 'DELETE' });
+                if(res.ok) { showToast("Varlık başarıyla silindi.", "success"); loadAssets(); }
+            }
+        }
+
+        async function downloadReport() {
+            const res = await fetchWithAuth('/api/report');
+            if(res.ok) {
+                const blob = await res.blob(); const url = window.URL.createObjectURL(blob); const a = document.createElement('a');
+                a.href = url; a.download = 'aegismatrix_raporu.pdf'; document.body.appendChild(a); a.click(); document.body.removeChild(a); showToast("Rapor başarıyla indirildi!", "success");
+            } else { showToast("Rapor indirilirken bir hata oluştu!", "error"); }
+        }
+
+        async function activateSubscription() {
+            const res = await fetchWithAuth('/api/subscription/activate?plan=Pro', { method: 'POST' });
+            const data = await res.json();
+            if(res.ok) { alert("✅ " + data.message); document.getElementById('licenseStatus').innerHTML = "ACTIVE"; } 
+            else { alert("❌ " + data.detail); }
+        }
+
+        function performLogout() { localStorage.removeItem('token'); window.location.href = '/'; }
+
+        // --- YÜKLEME ---
+        window.onload = async () => { await loadUserInfo(); await loadAssets(); };
+        
+        setInterval(() => { loadAssets(); }, 5000);
+    </script>
+</body>
+</html>

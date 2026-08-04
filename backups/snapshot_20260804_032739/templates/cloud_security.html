@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberGuard Enterprise | Bulut Güvenliği ve Postür Yönetimi (CSPM)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            dark: '#0B132B',
+                            card: '#1C2541',
+                            accent: '#48CAE4',
+                            glow: '#00F5D4',
+                            danger: '#FF3366',
+                            warning: '#FFB703',
+                            success: '#2A9D8F'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-cyber-dark text-slate-100 font-sans antialiased selection:bg-cyber-accent selection:text-cyber-dark">
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="w-64 bg-cyber-card border-r border-slate-800 flex flex-col justify-between hidden lg:flex">
+            <div>
+                <!-- Brand Header -->
+                <div class="h-20 flex items-center px-6 border-b border-slate-800 space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-cyber-accent to-cyber-glow flex items-center justify-center shadow-lg shadow-cyber-accent/20">
+                        <i class="fa-solid fa-shield-halved text-cyber-dark text-xl"></i>
+                    </div>
+                    <span class="text-lg font-bold tracking-wider text-white">CYBER<span class="text-cyber-accent">GUARD</span></span>
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="p-4 space-y-1 text-sm font-medium">
+                    <a href="dashboard.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-chart-pie w-5"></i>
+                        <span>SOC Paneli</span>
+                    </a>
+                    <a href="scans.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-radar w-5"></i>
+                        <span>Zafiyet Taramaları</span>
+                    </a>
+                    <a href="assets.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-server w-5"></i>
+                        <span>Varlık Envanteri</span>
+                    </a>
+                    <a href="incident_response.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-fire-extinguisher w-5"></i>
+                        <span>Olay Müdahale (IR)</span>
+                    </a>
+                    <a href="threat_intel.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-brain w-5"></i>
+                        <span>Tehdit İstihbaratı (TI)</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-xl bg-cyber-dark text-cyber-accent border border-slate-800 shadow-inner">
+                        <i class="fa-solid fa-cloud-shield w-5"></i>
+                        <span>Bulut Güvenliği (CSPM)</span>
+                    </a>
+                    <a href="reports.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-file-shield w-5"></i>
+                        <span>Uyumluluk & Raporlar</span>
+                    </a>
+                    <a href="settings.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-gears w-5"></i>
+                        <span>Sistem Ayarları</span>
+                    </a>
+                    <a href="integrations.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-plug w-5"></i>
+                        <span>Entegrasyonlar</span>
+                    </a>
+                </nav>
+            </div>
+
+            <!-- User Session Box -->
+            <div class="p-4 border-t border-slate-800">
+                <div class="flex items-center justify-between bg-cyber-dark p-3 rounded-xl border border-slate-800">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-lg bg-slate-800 flex items-center justify-center text-cyber-accent font-bold">
+                            SA
+                        </div>
+                        <div class="overflow-hidden">
+                            <p class="text-xs font-bold text-white truncate">SOC Analisti</p>
+                            <p class="text-[10px] text-slate-400 truncate">analyst@enterprise.com</p>
+                        </div>
+                    </div>
+                    <a href="login.html" title="Çıkış Yap" class="text-slate-400 hover:text-cyber-danger transition p-2">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col h-screen overflow-y-auto">
+            
+            <!-- Top Navbar -->
+            <header class="h-20 bg-cyber-card/50 backdrop-blur-md border-b border-slate-800 px-8 flex items-center justify-between sticky top-0 z-40">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-xl font-bold text-white">Bulut Güvenliği ve Postür Yönetimi (CSPM)</h1>
+                    <span class="px-3 py-1 rounded-full bg-cyber-success/10 border border-cyber-success/30 text-cyber-success text-xs font-semibold flex items-center">
+                        <i class="fa-solid fa-circle-check mr-2"></i> Multi-Cloud Senkronize
+                    </span>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <button onclick="openCloudAuditModal()" class="px-4 py-2 bg-gradient-to-r from-cyber-accent to-cyber-glow text-cyber-dark font-bold text-xs rounded-lg shadow-md hover:opacity-90 transition flex items-center space-x-2">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span>Bulut Postür Taraması Başlat</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Body Content -->
+            <div class="p-8 space-y-8 max-w-7xl w-full mx-auto">
+                
+                <!-- Quick Metrics Grid for CSPM -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="bg-cyber-card border border-slate-800 p-6 rounded-2xl relative overflow-hidden">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-cyber-accent"></div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Bağlı Bulut Hesapları</p>
+                        <h3 class="text-3xl font-extrabold text-white mt-2">7</h3>
+                        <p class="text-xs text-cyber-accent mt-4"><i class="fa-solid fa-cloud mr-1"></i> AWS, Azure, GCP</p>
+                    </div>
+                    <div class="bg-cyber-card border border-slate-800 p-6 rounded-2xl relative overflow-hidden">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-cyber-danger"></div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Açık Misconfiguration</p>
+                        <h3 class="text-3xl font-extrabold text-white mt-2">12</h3>
+                        <p class="text-xs text-cyber-danger mt-4"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Acil Düzeltme Gerekli</p>
+                    </div>
+                    <div class="bg-cyber-card border border-slate-800 p-6 rounded-2xl relative overflow-hidden">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-cyber-warning"></div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Açık S3 / Storage Bucket</p>
+                        <h3 class="text-3xl font-extrabold text-white mt-2">1</h3>
+                        <p class="text-xs text-cyber-warning mt-4"><i class="fa-solid fa-eye-slash mr-1"></i> Public Erişim Riski</p>
+                    </div>
+                    <div class="bg-cyber-card border border-slate-800 p-6 rounded-2xl relative overflow-hidden">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-cyber-success"></div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Bulut Uyumluluk Skoru</p>
+                        <h3 class="text-3xl font-extrabold text-white mt-2">%88.5</h3>
+                        <p class="text-xs text-cyber-success mt-4"><i class="fa-solid fa-shield-halved mr-1"></i> CIS AWS Benchmark</p>
+                    </div>
+                </div>
+
+                <!-- Cloud Misconfigurations Table -->
+                <div class="bg-cyber-card border border-slate-800 rounded-2xl overflow-hidden">
+                    <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-base font-bold text-white">Tespit Edilen Bulut Yapılandırma Hataları (CSPM)</h3>
+                            <p class="text-xs text-slate-400 mt-1">AWS, Azure ve GCP altyapılarındaki güvenlik açıkları ve ilke ihlalleri</p>
+                        </div>
+                        <span class="text-xs text-slate-400 font-mono">Motor: AEGIS Cloud Posture</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-cyber-dark/50 text-xs font-semibold uppercase text-slate-400 border-b border-slate-800">
+                                    <th class="py-4 px-6">Bulut Sağlayıcı / Kaynak</th>
+                                    <th class="py-4 px-6">Yapılandırma Hatası</th>
+                                    <th class="py-4 px-6">Risk Seviyesi</th>
+                                    <th class="py-4 px-6">Uyumluluk Kuralı</th>
+                                    <th class="py-4 px-6 text-right">Aksiyonlar</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800 text-slate-300">
+                                <tr class="hover:bg-slate-800/30 transition">
+                                    <td class="py-4 px-6 font-bold text-white flex items-center">
+                                        <i class="fa-brands fa-aws text-orange-400 mr-3 text-lg"></i> AWS S3 (prod-customer-data-backup)
+                                    </td>
+                                    <td class="text-xs py-4 px-6 text-slate-300">Bucket ACL herkese açık (Public Read Access)</td>
+                                    <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-full bg-cyber-danger/10 text-cyber-danger border border-cyber-danger/30 text-xs font-bold">9.5 Critical</span></td>
+                                    <td class="py-4 px-6 text-xs font-mono text-slate-400">CIS AWS 1.2.1</td>
+                                    <td class="py-4 px-6 text-right space-x-2">
+                                        <button onclick="remediateCloudIssue('AWS S3 Public Access')" class="p-2 bg-cyber-dark hover:bg-slate-800 text-cyber-success rounded-lg border border-cyber-success/40 transition" title="Otomatik Düzelt (Remediate)"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                                        <button onclick="viewCloudDetail('AWS S3 Bucket')" class="p-2 bg-cyber-dark hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700 transition" title="İncele"><i class="fa-solid fa-eye text-cyber-accent"></i></button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-slate-800/30 transition">
+                                    <td class="py-4 px-6 font-bold text-white flex items-center">
+                                        <i class="fa-brands fa-microsoft text-blue-400 mr-3 text-lg"></i> Azure NSG (db-subnet-nsg)
+                                    </td>
+                                    <td class="text-xs py-4 px-6 text-slate-300">SQL Portu (1433) tüm dünyaya (0.0.0.0/0) açık</td>
+                                    <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-full bg-cyber-warning/10 text-cyber-warning border border-cyber-warning/30 text-xs font-bold">8.2 High</span></td>
+                                    <td class="py-4 px-6 text-xs font-mono text-slate-400">Azure Security Benchmark NSG-1</td>
+                                    <td class="py-4 px-6 text-right space-x-2">
+                                        <button onclick="remediateCloudIssue('Azure NSG Port 1433')" class="p-2 bg-cyber-dark hover:bg-slate-800 text-cyber-success rounded-lg border border-cyber-success/40 transition" title="Otomatik Düzelt (Remediate)"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                                        <button onclick="viewCloudDetail('Azure NSG')" class="p-2 bg-cyber-dark hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700 transition" title="İncele"><i class="fa-solid fa-eye text-cyber-accent"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for Cloud Audit Execution -->
+    <div id="cloudAuditModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-cyber-card border border-slate-800 rounded-2xl max-w-lg w-full p-8 shadow-2xl relative">
+            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyber-accent to-cyber-glow rounded-t-2xl"></div>
+            
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-white flex items-center"><i class="fa-solid fa-cloud-arrow-down mr-2 text-cyber-accent"></i> Yeni Bulut Postür Taraması</h3>
+                <button onclick="closeCloudAuditModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="cloudAuditForm" onsubmit="submitCloudAudit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Hedef Bulut Sağlayıcı / Hesap</label>
+                    <select id="cloudProvider" class="w-full px-4 py-3 bg-cyber-dark border border-slate-700 rounded-xl text-sm text-slate-300 focus:outline-none focus:border-cyber-accent transition">
+                        <option>Tüm Bağlı Bulut Hesapları (Multi-Cloud)</option>
+                        <option>AWS Production Account (ID: 9812-3321)</option>
+                        <option>Azure Enterprise Subscription</option>
+                        <option>Google Cloud Platform (GCP Core)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Denetim Çerçevesi (Compliance Benchmark)</label>
+                    <select id="complianceFramework" class="w-full px-4 py-3 bg-cyber-dark border border-slate-700 rounded-xl text-sm text-slate-300 focus:outline-none focus:border-cyber-accent transition">
+                        <option>CIS Benchmark v3.0 (Önerilen)</option>
+                        <option>PCI-DSS Cloud Security Standards</option>
+                        <option>SOC 2 Trust Services Criteria</option>
+                    </select>
+                </div>
+                <div class="pt-4 flex space-x-4">
+                    <button type="button" onclick="closeCloudAuditModal()" class="w-1/2 py-3 bg-cyber-dark border border-slate-700 text-slate-300 font-bold rounded-xl text-xs hover:bg-slate-800 transition">İptal</button>
+                    <button type="submit" id="startAuditBtn" class="w-1/2 py-3 bg-gradient-to-r from-cyber-accent to-cyber-glow text-cyber-dark font-bold rounded-xl text-xs shadow-lg hover:opacity-90 transition">Taramayı Başlat</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Security Script & Idempotency / Safe Handler Logic -->
+    <script>
+        function openCloudAuditModal() {
+            document.getElementById('cloudAuditModal').classList.remove('hidden');
+            document.getElementById('cloudAuditModal').classList.add('flex');
+        }
+
+        function closeCloudAuditModal() {
+            document.getElementById('cloudAuditModal').classList.remove('flex');
+            document.getElementById('cloudAuditModal').classList.add('hidden');
+        }
+
+        let isRunningAudit = false; // Idempotency protection flag
+
+        function submitCloudAudit(event) {
+            event.preventDefault();
+            if (isRunningAudit) return;
+            isRunningAudit = true;
+
+            const btn = document.getElementById('startAuditBtn');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i>Taranıyor...`;
+            btn.disabled = true;
+
+            try {
+                setTimeout(() => {
+                    alert('Bulut postür denetimi başarıyla tamamlandı. Rapor güncellendi.');
+                    closeCloudAuditModal();
+                }, 1200);
+            } catch (error) {
+                console.error("Bulut denetim hatası yakalandı.");
+            } finally {
+                setTimeout(() => {
+                    isRunningAudit = false;
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                }, 1500);
+            }
+        }
+
+        function remediateCloudIssue(issueName) {
+            if (confirm(issueName + " yapılandırma hatasını otomatik düzeltmek (Remediation) istediğinize emin misiniz?")) {
+                alert("Otomatik düzeltme komutu bulut sağlayıcı API'sine iletildi.");
+            }
+        }
+
+        function viewCloudDetail(resourceName) {
+            alert(resourceName + " detaylı bulut varlık telemetrisi ve IAM politikaları açılıyor...");
+        }
+    </script>
+</body>
+</html>

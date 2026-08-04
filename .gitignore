@@ -1,0 +1,12 @@
+# Veritabanı
+cyber_guard.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+
+# Alembic Versiyonları (Kaynak kodda tutulması iyi olur ama kurulumda oluşan klasör hariç)
+alembic/versions/
+alembic.ini

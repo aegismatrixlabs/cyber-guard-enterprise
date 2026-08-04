@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBER Sistemi</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <h1 class="logo">SİSTEM</h1>
+    </header>
+
+    <div class="form-box">
+        <input type="text" id="inputVeri" placeholder="Sisteme veri giriniz...">
+        <br><br>
+        <button id="gonderBtn">Gönder</button>
+    </div>
+    
+    <div id="durumMesaji" style="text-align: center; margin-top: 10px; color: white;"></div>
+
+    <br>
+    <table>
+        <thead>
+            <tr>
+                <th>Kayıt Zamanı</th>
+                <th>Veri İçeriği</th>
+            </tr>
+        </thead>
+        <tbody id="tabloGovdesi">
+        </tbody>
+    </table>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

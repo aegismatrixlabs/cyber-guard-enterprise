@@ -11,3 +11,7 @@ class User(Base):
     created_at = Column(String)
     reset_token = Column(String, nullable=True)
     reset_token_expiry = Column(String, nullable=True)
+    
+    # --- YENİ ALANLAR ---
+    last_login = Column(String, nullable=True)
+    last_ip = Column(String, nullable=True)
